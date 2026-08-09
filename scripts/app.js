@@ -1,4 +1,4 @@
-const GVIZ_URL = "robloxobbyindex.kirillrahimov80.workers.dev";
+const GVIZ_URL = "https://robloxobbyindex.kirillrahimov80.workers.dev";
 
 const DIFFS = ["Effortless","Easy","Medium","Hard","Difficult","Challenging","Intense","Remorseless","Insane","Extreme","Terrifying","Catastrophic","Horrific","Unreal","Nil","Error","Literal"];
 const COLORS = [

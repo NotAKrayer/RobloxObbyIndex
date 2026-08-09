@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Roblox Obby Index</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="assets/logo.png" type="image/x-icon">
+</head>
+<body>
+<header style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+  <h1>Roblox Obby Index</h1>
+  <button class="dropdown-btn" id="siteInfoBtn">Info</button>
+</header>
+
+<div class="filters" id="filters">
+  <span class="label">Filters</span>
+
+  <div class="dropdown" id="diffDropdown">
+    <button class="dropdown-btn" id="diffBtn">Difficulty ▾</button>
+    <div class="dropdown-menu" id="diffMenu"></div>
+  </div>
+
+  <div class="dropdown" id="tagDropdown">
+    <button class="dropdown-btn" id="tagBtn">Tags ▾</button>
+    <div class="dropdown-menu" id="tagMenu"></div>
+  </div>
+
+  <div class="dropdown" id="typeDropdown">
+    <button class="dropdown-btn" id="typeBtn">Type ▾</button>
+    <div class="dropdown-menu" id="typeMenu"></div>
+  </div>
+
+  <div class="dropdown" id="tierDropdown">
+    <button class="dropdown-btn" id="tierBtn">Tier ▾</button>
+    <div class="dropdown-menu" id="tierMenu"></div>
+  </div>
+
+  <button id="clear">Clear</button>
+
+  <span class="label">Sort by:</span>
+  <select id="sort">
+    <option value="difficulty">Difficulty</option>
+    <option value="quality">Quality</option>
+    <option value="type">Type</option>
+  </select>
+
+  <button id="dir">▼ High → Low</button>
+  <input type="text" id="search" placeholder="Search" style="min-width:160px">
+</div>
+
+<main>
+  <section class="card">
+    <h2>Towers List</h2>
+    <div class="list" id="list"><div class="muted">Loading...</div></div>
+  </section>
+
+  <section class="card">
+    <h2>Tower Info</h2>
+    <div class="info" id="info"><div class="muted">Select a tower to view details</div></div>
+  </section>
+</main>
+
+<div class="modal-overlay" id="siteInfoModalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Info</h3>
+      <button class="modal-close" id="siteInfoModalClose">✕</button>
+    </div>
+    <div class="modal-body" id="siteInfoModalBody"></div>
+  </div>
+</div>
+
+<script src="scripts/app.js"></script>
+</body>
+</html>

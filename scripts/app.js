@@ -49,13 +49,13 @@ const SUBTIERS = [
 function subtierFor(diffValue){
   if (diffValue == null) return null;
   let frac = diffValue - Math.floor(diffValue);
-  frac = Math.round(frac * 100) / 100; // normalize float rounding
+  frac = Math.round(frac * 100) / 100;
   for (const st of SUBTIERS){ if (st.test(frac)) return st.key; }
   return null;
 }
 
 const TIER_SUBTIER_NAMES = [
-  "Baseline","Bottom-Low","Bottom","Low-Mid","Low","Mid-High","Mid","High-Peak","High","Peak"
+  "Baseline","Bottom","Bottom-Low","Low","Low-Mid","Mid","Mid-High","High","High-Peak","Peak"
 ];
 
 const TIER_SUBTIER_SORTED = TIER_SUBTIER_NAMES.slice().sort((a, b) => b.length - a.length);
@@ -536,7 +536,7 @@ function effectiveDifficultyValue(t){
   if (isTierSubtierDiff(d)) return tierToVirtualDifficulty(Math.floor(d.tierNum), d.subtierName);
   if (nt === "obby") return tierToVirtualDifficulty(Math.floor(d));
   if (nt === "jump") return jumpToVirtualDifficulty(Math.floor(d));
-  return d; // regular numeric difficulty (towers, etc.)
+  return d;
 }
 
 function diffClass(effectiveVal){

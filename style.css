@@ -12,6 +12,14 @@
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 Arial,sans-serif}
+
+*{scrollbar-width:thin;scrollbar-color:var(--border2) var(--bg2)}
+
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-track{background:var(--bg2)}
+*::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px;border:2px solid var(--bg2)}
+*::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+*::-webkit-scrollbar-corner{background:var(--bg2)}
 header{padding:10px 14px;background:var(--bg2);border-bottom:1px solid var(--border)}
 header h1{margin:0;font-size:16px}
 

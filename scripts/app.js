@@ -56,9 +56,135 @@ function subtierFor(diffValue){
 
 const QUALITIES = ["SS","S+","S","S-","A+","A","A-","B+","B","B-","C+","C","C-","D+","D","D-","F+","F","F-","X"];
 const KNOWN_TAGS = ["Purist","Wallhop","Checkpoints","Speedrun","Jank","Camera control","CO Based","Buff","Nerf","Old Version","Segment","Obby","Tower","Jump"];
-const RAW_TYPES = ["jump", "wallhop"];      // number shown as-is, no formatting
-const TIER_TYPES = ["obby"];     // shown as "Tier N"
+const RAW_TYPES = ["jump"];      // number shown as-is, no formatting
+const TIER_TYPES = ["obby", "wallhop"];     // shown as "Tier N"
 const NO_SUBTIER_TYPES = ["jump","obby","wallhop"];
+
+const UNKNOWN = "UNKNOWN";
+
+const DIFF_NAME_TO_INDEX = new Map();
+DIFFS.forEach((name, i) => DIFF_NAME_TO_INDEX.set(name.toLowerCase(), i));
+
+function parseDifficultyCell(cell){
+  const raw = cellText(cell);
+  if (!raw) {
+    const n = cellNum(cell);
+    return n == null ? null : n;
+  }
+
+  const trimmed = raw.trim();
+
+  if (trimmed === "?" || trimmed.toLowerCase() === "unknown") {
+    return UNKNOWN;
+  }
+
+  const nameIdx = DIFF_NAME_TO_INDEX.get(trimmed.toLowerCase());
+  if (nameIdx != null) {
+    return { textOnly: true, index: nameIdx };
+  }
+
+  const n = cellNum(cell);
+  return n == null ? null : n;
+}
+
+function isTextOnlyDiff(d){ return d != null && typeof d === "object" && d.textOnly; }
+function isUnknownDiff(d){ return d === UNKNOWN; }
+
+function textOnlyValue(d){
+  return d.index - 0.001;
+}
+
+function diffIndex(name){ return DIFFS.indexOf(name); }
+function mid(a, b){ return (diffIndex(a) + diffIndex(b)) / 2; }
+
+const TIER_ANCHORS = [
+  [1,  diffIndex("Easy")],
+  [2,  diffIndex("Easy") + 0.35],
+  [3,  mid("Easy","Medium")],
+  [4,  mid("Medium","Hard")],
+  [5,  mid("Hard","Difficult") - 0.15],
+  [6,  mid("Hard","Difficult") + 0.15],
+  [7,  mid("Difficult","Challenging")],
+  [8,  mid("Challenging","Intense")],
+  [9,  mid("Intense","Remorseless")],
+  [10, mid("Remorseless","Insane")],
+  [11, mid("Insane","Extreme")],
+  [13, mid("Extreme","Terrifying") - 0.15],
+  [14, mid("Extreme","Terrifying") + 0.15],
+  [15, mid("Terrifying","Catastrophic")],
+  [16, mid("Catastrophic","Horrific")],
+  [17, mid("Horrific","Unreal")],
+  [18, mid("Unreal","Nil") - 0.15],
+  [19, mid("Unreal","Nil") + 0.15],
+  [20, mid("Nil","Error") - 0.2],
+  [21, mid("Nil","Error")],
+  [22, mid("Nil","Error") + 0.2],
+  [23, mid("Error","Literal") - 0.2],
+  [24, mid("Error","Literal")],
+  [25, mid("Error","Literal") + 0.2]
+];
+
+const TIER_ANCHOR_MAP = new Map(TIER_ANCHORS);
+
+const LITERAL_IDX = diffIndex("Literal");
+function tierToVirtualDifficulty(tierNum){
+  if (TIER_ANCHOR_MAP.has(tierNum)) return TIER_ANCHOR_MAP.get(tierNum);
+  if (tierNum < 1) return diffIndex("Effortless");
+  if (tierNum > 25) {
+    const stepsAbove = tierNum - 25;
+    const growth = 1 + stepsAbove * 0.08;
+    return LITERAL_IDX + stepsAbove * growth * 0.5;
+  }
+  const known = TIER_ANCHORS.map(a => a[0]).sort((a,b) => a-b);
+  let lower = null, upper = null;
+  for (const k of known) {
+    if (k <= tierNum) lower = k;
+    if (k >= tierNum && upper == null) upper = k;
+  }
+  if (lower == null) return TIER_ANCHOR_MAP.get(upper);
+  if (upper == null) return TIER_ANCHOR_MAP.get(lower);
+  if (lower === upper) return TIER_ANCHOR_MAP.get(lower);
+  const lv = TIER_ANCHOR_MAP.get(lower), uv = TIER_ANCHOR_MAP.get(upper);
+  const t = (tierNum - lower) / (upper - lower);
+  return lv + (uv - lv) * t;
+}
+
+const JUMP_ANCHORS = [
+  [0, mid("Easy","Medium") - 0.15],
+  [1, mid("Easy","Medium") + 0.15],
+  [2, mid("Hard","Difficult")],
+  [3, mid("Remorseless","Insane")],
+  [4, mid("Insane","Extreme") - 0.15],
+  [5, mid("Insane","Extreme") + 0.15],
+  [6, mid("Extreme","Terrifying")],
+  [7, mid("Terrifying","Catastrophic")],
+  [8, mid("Catastrophic","Horrific")],
+  [9, mid("Horrific","Unreal")]
+];
+const JUMP_ANCHOR_MAP = new Map(JUMP_ANCHORS);
+const UNREAL_IDX = diffIndex("Unreal");
+
+function jumpToVirtualDifficulty(jumpNum){
+  if (JUMP_ANCHOR_MAP.has(jumpNum)) return JUMP_ANCHOR_MAP.get(jumpNum);
+  if (jumpNum < 0) return JUMP_ANCHOR_MAP.get(0);
+  if (jumpNum >= 10) {
+    const stepsAbove = jumpNum - 9;
+    const growth = 1 + stepsAbove * 0.08;
+    return UNREAL_IDX + stepsAbove * growth * 0.5;
+  }
+  const known = JUMP_ANCHORS.map(a => a[0]).sort((a,b) => a-b);
+  let lower = null, upper = null;
+  for (const k of known) {
+    if (k <= jumpNum) lower = k;
+    if (k >= jumpNum && upper == null) upper = k;
+  }
+  if (lower == null) return JUMP_ANCHOR_MAP.get(upper);
+  if (upper == null) return JUMP_ANCHOR_MAP.get(lower);
+  if (lower === upper) return JUMP_ANCHOR_MAP.get(lower);
+  const lv = JUMP_ANCHOR_MAP.get(lower), uv = JUMP_ANCHOR_MAP.get(upper);
+  const t = (jumpNum - lower) / (upper - lower);
+  return lv + (uv - lv) * t;
+}
 
 const state = {
   towers: [],
@@ -108,6 +234,21 @@ DIFFS.forEach((d, i) => {
   label.appendChild(document.createTextNode(" " + d));
   diffMenu.appendChild(label);
 });
+
+// Unknown filter option (separate from numeric DIFFS list)
+(function addUnknownFilterOption(){
+  const label = document.createElement("label");
+  const cb = document.createElement("input");
+  cb.type = "checkbox";
+  cb.onclick = () => {
+    cb.checked ? state.diffFilters.add(UNKNOWN) : state.diffFilters.delete(UNKNOWN);
+    updateBtnLabels();
+    renderList();
+  };
+  label.appendChild(cb);
+  label.appendChild(document.createTextNode(" Unknown"));
+  diffMenu.appendChild(label);
+})();
 
 function buildTagMenu(){
   tagMenu.innerHTML = "";
@@ -282,7 +423,7 @@ async function loadTowers() {
 
       towers.push({
         name,
-        difficulty: cellNum(c[iD]),
+        difficulty: parseDifficultyCell(c[iD]),
         verified,
         verifier,
         tier,
@@ -316,9 +457,21 @@ function cellNum(cell){
 
 function normType(t){ return (t || "").trim().toLowerCase(); }
 
-function diffClass(d){
+function effectiveDifficultyValue(t){
+  const d = t.difficulty;
   if (d == null) return null;
-  const i = Math.floor(d);
+  if (isUnknownDiff(d)) return UNKNOWN;
+  if (isTextOnlyDiff(d)) return textOnlyValue(d);
+
+  const nt = normType(t.tier);
+  if (nt === "obby") return tierToVirtualDifficulty(Math.floor(d));
+  if (nt === "jump") return jumpToVirtualDifficulty(Math.floor(d));
+  return d; // regular numeric difficulty (towers, etc.)
+}
+
+function diffClass(effectiveVal){
+  if (effectiveVal == null || effectiveVal === UNKNOWN) return null;
+  const i = Math.floor(effectiveVal);
   return (i < 0 || i >= DIFFS.length) ? null : i;
 }
 function qualityRank(q){ if(!q) return null; const i = QUALITIES.indexOf(q); return i < 0 ? null : i; }
@@ -326,23 +479,32 @@ function esc(s){ return String(s).replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&l
 
 function formatDifficulty(t){
   const nt = normType(t.tier);
-  if (t.difficulty == null) return { text: "N/A", color: "#888" };
+  const d = t.difficulty;
+
+  if (d == null) return { text: "N/A", color: "#888" };
+
+  if (isUnknownDiff(d)) return { text: "Unknown", color: "#888" };
+
+  if (isTextOnlyDiff(d)) {
+    const name = DIFFS[d.index];
+    return { text: name, color: COLORS[d.index] };
+  }
 
   if (RAW_TYPES.includes(nt)) {
-    return { text: String(t.difficulty), color: "#888" };
+    return { text: String(d), color: "#888" };
   }
 
   if (TIER_TYPES.includes(nt)) {
-    const tierNum = Math.floor(t.difficulty);
+    const tierNum = Math.floor(d);
     return { text: "Tier " + tierNum, color: "#888" };
   }
 
-  const ci = diffClass(t.difficulty);
+  const ci = diffClass(d);
   const col = ci == null ? "#888" : COLORS[ci];
   const name = ci == null ? "N/A" : DIFFS[ci];
-  let text = String(t.difficulty) + (ci != null ? " · " + name : "");
+  let text = String(d) + (ci != null ? " · " + name : "");
   if (!NO_SUBTIER_TYPES.includes(nt)) {
-    const st = subtierFor(t.difficulty);
+    const st = subtierFor(d);
     if (st) text += " (" + st + ")";
   }
   return { text, color: col };
@@ -350,10 +512,17 @@ function formatDifficulty(t){
 
 function sortValue(t){
   const nt = normType(t.tier);
-  if (t.difficulty == null) return -Infinity;
-  if (RAW_TYPES.includes(nt)) return t.difficulty;
-  if (TIER_TYPES.includes(nt)) return Math.floor(t.difficulty);
-  return t.difficulty;
+  const d = t.difficulty;
+  if (d == null) return -Infinity;
+  if (isUnknownDiff(d)) return -Infinity + 1;
+  if (isTextOnlyDiff(d)) return textOnlyValue(d);
+
+  if (RAW_TYPES.includes(nt)) {
+    if (nt === "jump") return jumpToVirtualDifficulty(Math.floor(d));
+    return d;
+  }
+  if (TIER_TYPES.includes(nt)) return tierToVirtualDifficulty(Math.floor(d));
+  return d;
 }
 
 function renderList() {
@@ -366,8 +535,15 @@ function renderList() {
   if (state.diffFilters.size) {
     arr = arr.filter(t => {
       const nt = normType(t.tier);
+      const d = t.difficulty;
+
+      if (state.diffFilters.has(UNKNOWN) && isUnknownDiff(d)) return true;
+      if (isUnknownDiff(d)) return false;
       if (RAW_TYPES.includes(nt) || TIER_TYPES.includes(nt)) return false;
-      const ci = diffClass(t.difficulty);
+
+      if (isTextOnlyDiff(d)) return state.diffFilters.has(d.index);
+
+      const ci = diffClass(d);
       return ci != null && state.diffFilters.has(ci);
     });
   }
@@ -384,6 +560,7 @@ function renderList() {
     arr = arr.filter(t => {
       const nt = normType(t.tier);
       if (!TIER_TYPES.includes(nt) || t.difficulty == null) return false;
+      if (isUnknownDiff(t.difficulty) || isTextOnlyDiff(t.difficulty)) return false;
       const tierNum = Math.floor(t.difficulty);
       if (tierNum > 25) return state.tierFilters.has("25+");
       return state.tierFilters.has(String(tierNum));

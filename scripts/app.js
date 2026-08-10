@@ -54,6 +54,42 @@ function subtierFor(diffValue){
   return null;
 }
 
+const TIER_SUBTIER_NAMES = [
+  "Baseline","Bottom-Low","Bottom","Low-Mid","Low","Mid-High","Mid","High-Peak","High","Peak"
+];
+
+const TIER_SUBTIER_SORTED = TIER_SUBTIER_NAMES.slice().sort((a, b) => b.length - a.length);
+
+function normLoose(s){ return String(s).toLowerCase().replace(/[^a-z0-9]/g, ""); }
+
+const TIER_SUBTIER_LOOKUP = TIER_SUBTIER_SORTED.map(name => ({
+  name,
+  key: normLoose(name)
+}));
+
+function parseTierSubtierCell(raw){
+  if (!raw) return null;
+  const loose = normLoose(raw);
+  if (!loose) return null;
+
+  let subtierName = null;
+  let rest = loose;
+  for (const { name, key } of TIER_SUBTIER_LOOKUP) {
+    if (loose.includes(key)) {
+      subtierName = name;
+      rest = loose.replace(key, "");
+      break;
+    }
+  }
+
+  const numMatch = rest.match(/\d+(\.\d+)?/);
+  if (!numMatch) return null;
+  const tierNum = parseFloat(numMatch[0]);
+  if (isNaN(tierNum)) return null;
+
+  return { tierNum, subtierName };
+}
+
 const QUALITIES = ["SS","S+","S","S-","A+","A","A-","B+","B","B-","C+","C","C-","D+","D","D-","F+","F","F-","X"];
 const KNOWN_TAGS = ["Purist","Wallhop","Checkpoints","Speedrun","Jank","Camera control","CO Based","Buff","Nerf","Old Version","Segment","Obby","Tower","Jump"];
 const RAW_TYPES = ["jump"];      // number shown as-is, no formatting
@@ -65,7 +101,7 @@ const UNKNOWN = "UNKNOWN";
 const DIFF_NAME_TO_INDEX = new Map();
 DIFFS.forEach((name, i) => DIFF_NAME_TO_INDEX.set(name.toLowerCase(), i));
 
-function parseDifficultyCell(cell){
+function parseDifficultyCell(cell, typeHint){
   const raw = cellText(cell);
   if (!raw) {
     const n = cellNum(cell);
@@ -83,12 +119,21 @@ function parseDifficultyCell(cell){
     return { textOnly: true, index: nameIdx };
   }
 
+  const nt = normType(typeHint);
+  if (TIER_TYPES.includes(nt)) {
+    const parsed = parseTierSubtierCell(trimmed);
+    if (parsed && parsed.subtierName) {
+      return { tierSubtier: true, tierNum: parsed.tierNum, subtierName: parsed.subtierName };
+    }
+  }
+
   const n = cellNum(cell);
   return n == null ? null : n;
 }
 
 function isTextOnlyDiff(d){ return d != null && typeof d === "object" && d.textOnly; }
 function isUnknownDiff(d){ return d === UNKNOWN; }
+function isTierSubtierDiff(d){ return d != null && typeof d === "object" && d.tierSubtier; }
 
 function textOnlyValue(d){
   return d.index - 0.001;
@@ -127,13 +172,32 @@ const TIER_ANCHORS = [
 const TIER_ANCHOR_MAP = new Map(TIER_ANCHORS);
 
 const LITERAL_IDX = diffIndex("Literal");
-function tierToVirtualDifficulty(tierNum){
-  if (TIER_ANCHOR_MAP.has(tierNum)) return TIER_ANCHOR_MAP.get(tierNum);
+
+function subtierFraction(subtierName){
+  if (!subtierName) return 0;
+  const i = TIER_SUBTIER_NAMES.indexOf(subtierName);
+  return i < 0 ? 0 : i / TIER_SUBTIER_NAMES.length;
+}
+
+function tierToVirtualDifficulty(tierNum, subtierName){
+  const frac = subtierFraction(subtierName);
+
+  if (TIER_ANCHOR_MAP.has(tierNum)) {
+    const base = TIER_ANCHOR_MAP.get(tierNum);
+    if (!frac) return base;
+    const known = TIER_ANCHORS.map(a => a[0]).sort((a,b) => a-b);
+    const nextKnown = known.find(k => k > tierNum);
+    const nextVal = nextKnown != null ? TIER_ANCHOR_MAP.get(nextKnown) : tierToVirtualDifficulty(tierNum + 1);
+    return base + (nextVal - base) * frac;
+  }
   if (tierNum < 1) return diffIndex("Effortless");
   if (tierNum > 25) {
     const stepsAbove = tierNum - 25;
     const growth = 1 + stepsAbove * 0.08;
-    return LITERAL_IDX + stepsAbove * growth * 0.5;
+    const base = LITERAL_IDX + stepsAbove * growth * 0.5;
+    if (!frac) return base;
+    const nextBase = LITERAL_IDX + (stepsAbove + 1) * (1 + (stepsAbove + 1) * 0.08) * 0.5;
+    return base + (nextBase - base) * frac;
   }
   const known = TIER_ANCHORS.map(a => a[0]).sort((a,b) => a-b);
   let lower = null, upper = null;
@@ -141,12 +205,18 @@ function tierToVirtualDifficulty(tierNum){
     if (k <= tierNum) lower = k;
     if (k >= tierNum && upper == null) upper = k;
   }
-  if (lower == null) return TIER_ANCHOR_MAP.get(upper);
-  if (upper == null) return TIER_ANCHOR_MAP.get(lower);
-  if (lower === upper) return TIER_ANCHOR_MAP.get(lower);
-  const lv = TIER_ANCHOR_MAP.get(lower), uv = TIER_ANCHOR_MAP.get(upper);
-  const t = (tierNum - lower) / (upper - lower);
-  return lv + (uv - lv) * t;
+  let base;
+  if (lower == null) base = TIER_ANCHOR_MAP.get(upper);
+  else if (upper == null) base = TIER_ANCHOR_MAP.get(lower);
+  else if (lower === upper) base = TIER_ANCHOR_MAP.get(lower);
+  else {
+    const lv = TIER_ANCHOR_MAP.get(lower), uv = TIER_ANCHOR_MAP.get(upper);
+    const t = (tierNum - lower) / (upper - lower);
+    base = lv + (uv - lv) * t;
+  }
+  if (!frac) return base;
+  const nextVal = tierToVirtualDifficulty(tierNum + 1);
+  return base + (nextVal - base) * frac;
 }
 
 const JUMP_ANCHORS = [
@@ -235,7 +305,6 @@ DIFFS.forEach((d, i) => {
   diffMenu.appendChild(label);
 });
 
-// Unknown filter option (separate from numeric DIFFS list)
 (function addUnknownFilterOption(){
   const label = document.createElement("label");
   const cb = document.createElement("input");
@@ -423,7 +492,7 @@ async function loadTowers() {
 
       towers.push({
         name,
-        difficulty: parseDifficultyCell(c[iD]),
+        difficulty: parseDifficultyCell(c[iD], tier),
         verified,
         verifier,
         tier,
@@ -464,6 +533,7 @@ function effectiveDifficultyValue(t){
   if (isTextOnlyDiff(d)) return textOnlyValue(d);
 
   const nt = normType(t.tier);
+  if (isTierSubtierDiff(d)) return tierToVirtualDifficulty(Math.floor(d.tierNum), d.subtierName);
   if (nt === "obby") return tierToVirtualDifficulty(Math.floor(d));
   if (nt === "jump") return jumpToVirtualDifficulty(Math.floor(d));
   return d; // regular numeric difficulty (towers, etc.)
@@ -488,6 +558,10 @@ function formatDifficulty(t){
   if (isTextOnlyDiff(d)) {
     const name = DIFFS[d.index];
     return { text: name, color: COLORS[d.index] };
+  }
+
+  if (isTierSubtierDiff(d)) {
+    return { text: d.subtierName + " Tier " + d.tierNum, color: "#888" };
   }
 
   if (RAW_TYPES.includes(nt)) {
@@ -516,6 +590,7 @@ function sortValue(t){
   if (d == null) return -Infinity;
   if (isUnknownDiff(d)) return -Infinity + 1;
   if (isTextOnlyDiff(d)) return textOnlyValue(d);
+  if (isTierSubtierDiff(d)) return tierToVirtualDifficulty(Math.floor(d.tierNum), d.subtierName);
 
   if (RAW_TYPES.includes(nt)) {
     if (nt === "jump") return jumpToVirtualDifficulty(Math.floor(d));
@@ -561,7 +636,8 @@ function renderList() {
       const nt = normType(t.tier);
       if (!TIER_TYPES.includes(nt) || t.difficulty == null) return false;
       if (isUnknownDiff(t.difficulty) || isTextOnlyDiff(t.difficulty)) return false;
-      const tierNum = Math.floor(t.difficulty);
+      const raw = isTierSubtierDiff(t.difficulty) ? t.difficulty.tierNum : t.difficulty;
+      const tierNum = Math.floor(raw);
       if (tierNum > 25) return state.tierFilters.has("25+");
       return state.tierFilters.has(String(tierNum));
     });

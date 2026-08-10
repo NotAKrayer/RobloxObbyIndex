@@ -1,6 +1,9 @@
 const GVIZ_URL = "https://robloxobbyindex.kirillrahimov80.workers.dev";
 
-const DIFFS = ["Effortless","Easy","Medium","Hard","Difficult","Challenging","Intense","Remorseless","Insane","Extreme","Terrifying","Catastrophic","Horrific","Unreal","Nil","Error","Literal"];
+const DIFFS = ["Effortless","Easy","Medium","Hard","Difficult","Challenging","Intense",
+"Remorseless","Insane","Extreme","Terrifying","Catastrophic","Horrific","Unreal","Nil",
+"Error","Literal","WHY", "No", "DEATH", "HELL", "TARTARUS", "Unimaginable", "Omega", "Aleph-Null", "Immeasurable", "Malicious"];
+
 const COLORS = [
   "rgb(0,206,0)",       // Effortless
   "rgb(117,243,71)",    // Easy
@@ -18,7 +21,17 @@ const COLORS = [
   "rgb(81,0,203)",      // Unreal
   "rgb(101,102,109)",   // Nil
   "rgb(86,36,36)",      // Error
-  "rgb(12,27,43)"       // Literal
+  "rgb(12,27,43)",      // Literal
+  "rgb(255,255,255)",   // WHY
+  "rgb(80,80,80)",      // No
+  "rgb(236, 89, 88)",   // DEATH
+  "rgb(7, 168, 229)",   // HELL
+  "rgb(194, 223, 241)", // TARTARUS
+  "rgb(67,0,0)",        // Unimaginable
+  "rgb(71, 71, 71)",    // Omega
+  "rgb(39, 38, 38)",    // Aleph-Null
+  "rgb(18,0,0)",        // Immeasurable
+  "rgb(146, 146, 146)"  // Malicious
 ];
 
 const SUBTIERS = [

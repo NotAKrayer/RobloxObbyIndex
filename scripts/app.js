@@ -203,7 +203,7 @@ document.getElementById("siteInfoBtn").onclick = () => {
     <div style="text-align:center;font-size:15px;font-weight:bold; margin-bottom:5px">
       <span>Roblox Obby Index is a quick and convenient list of all obbies in Roblox, including towers, tiered obbies, jumps, and so on</span>
       <span>Inspiration: SCLP</span>
-      <span>Owner: KirillLegenda (KirillMatter)</span>
+      <span>Owner and developer: KirillLegenda (KirillMatter)</span>
       <span>Staff: ddlghl</span>
     </div>
   `

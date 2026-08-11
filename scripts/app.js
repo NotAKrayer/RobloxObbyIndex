@@ -2,7 +2,7 @@ const GVIZ_URL = "https://robloxobbyindex.kirillrahimov80.workers.dev";
 
 const DIFFS = ["Effortless","Easy","Medium","Hard","Difficult","Challenging","Intense",
 "Remorseless","Insane","Extreme","Terrifying","Catastrophic","Horrific","Unreal","Nil",
-"Error","Literal","WHY", "No", "DEATH", "HELL", "TARTARUS", "Unimaginable", "Omega", "Aleph-Null", "Immeasurable", "Malicious"];
+"Error","Literal","WHY", "No", "DEATH", "HELL", "TARTARUS", "Unimaginable", "Omega", "Aleph-Null", "Immeasurable", "Malicious", "Impossible"];
 
 const COLORS = [
   "rgb(0,206,0)",       // Effortless
@@ -31,7 +31,8 @@ const COLORS = [
   "rgb(71, 71, 71)",    // Omega
   "rgb(39, 38, 38)",    // Aleph-Null
   "rgb(18,0,0)",        // Immeasurable
-  "rgb(146, 146, 146)"  // Malicious
+  "rgb(146, 146, 146)", // Malicious
+  "rgb(0, 0, 0)"        // Impossible
 ];
 
 const SUBTIERS = [

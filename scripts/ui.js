@@ -169,6 +169,7 @@ document.getElementById("siteInfoBtn").onclick = () => {
       <span>Inspiration: SCLP</span>
       <span>Owner and developer: KirillLegenda (KirillMatter)</span>
       <span>Staff: ddlghl</span>
+        <button onclick="window.open('https://discord.gg/D8PVcPR4Uj', '_blank')" class="discord-btn">Our Discord</button>
     </div>
   `
   siteInfoModalOverlay.classList.add("open");

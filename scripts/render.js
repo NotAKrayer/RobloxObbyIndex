@@ -79,39 +79,69 @@ function renderList() {
     arr = arr.filter(t => t.name.toLowerCase().includes(state.search));
   }
 
+  // Splits a tri-state filter Map into include/exclude key sets.
+  function splitFilters(map){
+    const include = new Set(), exclude = new Set();
+    map.forEach((v, k) => (v === "exclude" ? exclude : include).add(k));
+    return { include, exclude };
+  }
+
   if (state.diffFilters.size) {
-    arr = arr.filter(t => {
+    const { include, exclude } = splitFilters(state.diffFilters);
+
+    function diffKeyOf(t){
       const nt = normType(t.tier);
       const d = t.difficulty;
-
-      if (state.diffFilters.has(UNKNOWN) && isUnknownDiff(d)) return true;
-      if (isUnknownDiff(d)) return false;
-      if (RAW_TYPES.includes(nt) || TIER_TYPES.includes(nt)) return false;
-
-      if (isTextOnlyDiff(d)) return state.diffFilters.has(d.index);
-
+      if (isUnknownDiff(d)) return UNKNOWN;
+      if (RAW_TYPES.includes(nt) || TIER_TYPES.includes(nt)) return null;
+      if (isTextOnlyDiff(d)) return d.index;
       const ci = diffClass(d);
-      return ci != null && state.diffFilters.has(ci);
+      return ci == null ? null : ci;
+    }
+
+    arr = arr.filter(t => {
+      const key = diffKeyOf(t);
+      if (key != null && exclude.has(key)) return false;
+      if (!include.size) return true;
+      return key != null && include.has(key);
     });
   }
 
   if (state.tagFilters.size) {
-    arr = arr.filter(t => t.tags.some(tag => state.tagFilters.has(tag)));
+    const { include, exclude } = splitFilters(state.tagFilters);
+    arr = arr.filter(t => {
+      if (t.tags.some(tag => exclude.has(tag))) return false;
+      if (!include.size) return true;
+      return t.tags.some(tag => include.has(tag));
+    });
   }
 
   if (state.typeFilters.size) {
-    arr = arr.filter(t => state.typeFilters.has(t.tier));
+    const { include, exclude } = splitFilters(state.typeFilters);
+    arr = arr.filter(t => {
+      if (exclude.has(t.tier)) return false;
+      if (!include.size) return true;
+      return include.has(t.tier);
+    });
   }
 
   if (state.tierFilters.size) {
-    arr = arr.filter(t => {
+    const { include, exclude } = splitFilters(state.tierFilters);
+
+    function tierKeyOf(t){
       const nt = normType(t.tier);
-      if (!TIER_TYPES.includes(nt) || t.difficulty == null) return false;
-      if (isUnknownDiff(t.difficulty) || isTextOnlyDiff(t.difficulty)) return false;
+      if (!TIER_TYPES.includes(nt) || t.difficulty == null) return null;
+      if (isUnknownDiff(t.difficulty) || isTextOnlyDiff(t.difficulty)) return null;
       const raw = isTierSubtierDiff(t.difficulty) ? t.difficulty.tierNum : t.difficulty;
       const tierNum = Math.floor(raw);
-      if (tierNum > 25) return state.tierFilters.has("25+");
-      return state.tierFilters.has(String(tierNum));
+      return tierNum > 25 ? "25+" : String(tierNum);
+    }
+
+    arr = arr.filter(t => {
+      const key = tierKeyOf(t);
+      if (key != null && exclude.has(key)) return false;
+      if (!include.size) return true;
+      return key != null && include.has(key);
     });
   }
 
@@ -180,10 +210,15 @@ function renderInfo(t) {
 
   const lengthDisplay = t.lengthRaw ? esc(t.lengthRaw) : "N/A";
 
+  const altNameRow = t.altName
+    ? `<span>Alt. Name:</span><b>${esc(t.altName)}</b>`
+    : "";
+
   infoEl.innerHTML = `
     <div class="t">${esc(t.name)}</div>
     <div class="kv">
       <span>Name</span><b>${esc(t.name)}</b>
+      ${altNameRow}
       <span>Difficulty</span><b style="color:${fd.color}">${esc(fd.text)}</b>
       <span>Status</span><b>${statusText}</b>
       ${verifierRow}

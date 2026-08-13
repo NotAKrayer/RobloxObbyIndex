@@ -15,7 +15,7 @@ async function loadTowers() {
     if (!res.ok) throw new Error(res.status);
     const raw = await res.json();
     const json = JSON.parse(raw.slice(raw.indexOf("(") + 1, raw.lastIndexOf(")")));
-    const cols = json.table.cols.map(c => (c.label || "").toLowerCase());
+    const cols = json.table.cols.map(c => (c.label || "").toLowerCase().trim());
 
     let iN    = cols.indexOf("name");
     let iD    = cols.indexOf("difficulty");
@@ -28,6 +28,12 @@ async function loadTowers() {
     let iLink = cols.indexOf("link");
     let iTags = cols.indexOf("tags");
     let iLen  = cols.indexOf("length");
+
+    // alt name: col.label у Google пустой (это не настоящая шапка листа),
+    // поэтому ищем эту колонку по первой строке данных отдельно от остальных.
+    const headerRow = json.table.rows[0]?.c || [];
+    const headerTexts = headerRow.map(c => cellText(c).toLowerCase().trim());
+    let iAlt = headerTexts.indexOf("alt name");
 
     if (iN < 0) iN = 0;
     if (iD < 0) iD = 1;
@@ -52,6 +58,8 @@ async function loadTowers() {
       const name = cellText(c[iN]);
       if (!name) continue;
 
+      const altName = iAlt >= 0 ? cellText(c[iAlt]) : "";
+
       const verifiedRaw = cellText(c[iVer]).toLowerCase();
       const verified = verifiedRaw === "verified" || verifiedRaw === "true" || verifiedRaw === "yes";
       const verifier = verified ? cellText(c[iVBy]) : "";
@@ -66,6 +74,7 @@ async function loadTowers() {
 
       towers.push({
         name,
+        altName,
         difficulty: parseDifficultyCell(c[iD], tier),
         verified,
         verifier,

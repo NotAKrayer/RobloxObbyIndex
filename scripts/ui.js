@@ -1,9 +1,9 @@
 const state = {
   towers: [],
-  diffFilters: new Set(),
-  tagFilters: new Set(),
-  typeFilters: new Set(),
-  tierFilters: new Set(),
+  diffFilters: new Map(),
+  tagFilters: new Map(),
+  typeFilters: new Map(),
+  tierFilters: new Map(),
   sort: "difficulty",
   dir: "desc",
   selected: null,
@@ -11,6 +11,22 @@ const state = {
   allTags: [],
   allTypes: []
 };
+
+// Cycles a tri-state filter entry: none -> include -> exclude -> none.
+// `map` is one of the state filter Maps, `key` identifies the filter value.
+// Returns the resulting state ("include", "exclude", or null).
+function cycleFilterState(map, key){
+  const cur = map.get(key);
+  let next;
+  if (cur == null) next = "include";
+  else if (cur === "include") next = "exclude";
+  else next = null;
+  if (next == null) map.delete(key);
+  else map.set(key, next);
+  return next;
+}
+
+
 
 const listEl = document.getElementById("list");
 const infoEl = document.getElementById("info");
@@ -31,83 +47,55 @@ const tierMenu = document.getElementById("tierMenu");
 const tierBtn = document.getElementById("tierBtn");
 const tierDropdown = document.getElementById("tierDropdown");
 
-const TIER_BANDS = Array.from({length:26}, (_, i) => String(i)).concat(["25+"]);
-DIFFS.forEach((d, i) => {
+// Builds a tri-state filter option: click cycles none -> include -> exclude -> none.
+function buildTristateOption(container, map, key, labelText){
   const label = document.createElement("label");
-  const cb = document.createElement("input");
-  cb.type = "checkbox";
-  cb.onclick = () => {
-    cb.checked ? state.diffFilters.add(i) : state.diffFilters.delete(i);
+  const swatch = document.createElement("span");
+  swatch.className = "tristate";
+  const curState = map.get(key);
+  if (curState === "include") { label.classList.add("state-include"); swatch.classList.add("state-include"); }
+  if (curState === "exclude") { label.classList.add("state-exclude"); swatch.classList.add("state-exclude"); }
+  label.onclick = (e) => {
+    e.preventDefault();
+    const next = cycleFilterState(map, key);
+    label.classList.remove("state-include", "state-exclude");
+    swatch.classList.remove("state-include", "state-exclude");
+    if (next === "include") { label.classList.add("state-include"); swatch.classList.add("state-include"); }
+    if (next === "exclude") { label.classList.add("state-exclude"); swatch.classList.add("state-exclude"); }
     updateBtnLabels();
     renderList();
   };
-  label.appendChild(cb);
-  label.appendChild(document.createTextNode(" " + d));
-  diffMenu.appendChild(label);
+  label.appendChild(swatch);
+  label.appendChild(document.createTextNode(" " + labelText));
+  container.appendChild(label);
+  return label;
+}
+
+const TIER_BANDS = Array.from({length:26}, (_, i) => String(i)).concat(["25+"]);
+DIFFS.forEach((d, i) => {
+  buildTristateOption(diffMenu, state.diffFilters, i, d);
 });
 
 (function addUnknownFilterOption(){
-  const label = document.createElement("label");
-  const cb = document.createElement("input");
-  cb.type = "checkbox";
-  cb.onclick = () => {
-    cb.checked ? state.diffFilters.add(UNKNOWN) : state.diffFilters.delete(UNKNOWN);
-    updateBtnLabels();
-    renderList();
-  };
-  label.appendChild(cb);
-  label.appendChild(document.createTextNode(" Unknown"));
-  diffMenu.appendChild(label);
+  buildTristateOption(diffMenu, state.diffFilters, UNKNOWN, "Unknown");
 })();
 
 function buildTagMenu(){
   tagMenu.innerHTML = "";
   state.allTags.forEach(tag => {
-    const label = document.createElement("label");
-    const cb = document.createElement("input");
-    cb.type = "checkbox";
-    cb.checked = state.tagFilters.has(tag);
-    cb.onclick = () => {
-      cb.checked ? state.tagFilters.add(tag) : state.tagFilters.delete(tag);
-      updateBtnLabels();
-      renderList();
-    };
-    label.appendChild(cb);
-    label.appendChild(document.createTextNode(" " + tag));
-    tagMenu.appendChild(label);
+    buildTristateOption(tagMenu, state.tagFilters, tag, tag);
   });
 }
 
 function buildTypeMenu(){
   typeMenu.innerHTML = "";
   state.allTypes.forEach(type => {
-    const label = document.createElement("label");
-    const cb = document.createElement("input");
-    cb.type = "checkbox";
-    cb.checked = state.typeFilters.has(type);
-    cb.onclick = () => {
-      cb.checked ? state.typeFilters.add(type) : state.typeFilters.delete(type);
-      updateBtnLabels();
-      renderList();
-    };
-    label.appendChild(cb);
-    label.appendChild(document.createTextNode(" " + type));
-    typeMenu.appendChild(label);
+    buildTristateOption(typeMenu, state.typeFilters, type, type);
   });
 }
 
 TIER_BANDS.forEach(band => {
-  const label = document.createElement("label");
-  const cb = document.createElement("input");
-  cb.type = "checkbox";
-  cb.onclick = () => {
-    cb.checked ? state.tierFilters.add(band) : state.tierFilters.delete(band);
-    updateBtnLabels();
-    renderList();
-  };
-  label.appendChild(cb);
-  label.appendChild(document.createTextNode(" Tier " + band));
-  tierMenu.appendChild(label);
+  buildTristateOption(tierMenu, state.tierFilters, band, "Tier " + band);
 });
 
 [[diffBtn, diffMenu, diffDropdown],[tagBtn, tagMenu, tagDropdown],[typeBtn, typeMenu, typeDropdown],[tierBtn, tierMenu, tierDropdown]].forEach(([btn, menu, dd]) => {
@@ -125,11 +113,21 @@ document.addEventListener("click", (e) => {
   if (!tierDropdown.contains(e.target)) tierMenu.classList.remove("open");
 });
 
+function filterBtnLabel(base, map){
+  if (!map.size) return base + " ▾";
+  let inc = 0, exc = 0;
+  map.forEach(v => v === "exclude" ? exc++ : inc++);
+  const parts = [];
+  if (inc) parts.push(inc + "+");
+  if (exc) parts.push(exc + "-");
+  return base + " (" + parts.join(" ") + ") ▾";
+}
+
 function updateBtnLabels(){
-  diffBtn.textContent = (state.diffFilters.size ? "Difficulty (" + state.diffFilters.size + ") ▾" : "Difficulty ▾");
-  tagBtn.textContent = (state.tagFilters.size ? "Tags (" + state.tagFilters.size + ") ▾" : "Tags ▾");
-  typeBtn.textContent = (state.typeFilters.size ? "Type (" + state.typeFilters.size + ") ▾" : "Type ▾");
-  tierBtn.textContent = (state.tierFilters.size ? "Tier (" + state.tierFilters.size + ") ▾" : "Tier ▾");
+  diffBtn.textContent = filterBtnLabel("Difficulty", state.diffFilters);
+  tagBtn.textContent = filterBtnLabel("Tags", state.tagFilters);
+  typeBtn.textContent = filterBtnLabel("Type", state.typeFilters);
+  tierBtn.textContent = filterBtnLabel("Tier", state.tierFilters);
 }
 
 document.getElementById("clear").onclick = () => {
@@ -137,10 +135,13 @@ document.getElementById("clear").onclick = () => {
   state.tagFilters.clear();
   state.typeFilters.clear();
   state.tierFilters.clear();
-  diffMenu.querySelectorAll("input[type=checkbox]").forEach(cb => cb.checked = false);
-  tagMenu.querySelectorAll("input[type=checkbox]").forEach(cb => cb.checked = false);
-  typeMenu.querySelectorAll("input[type=checkbox]").forEach(cb => cb.checked = false);
-  tierMenu.querySelectorAll("input[type=checkbox]").forEach(cb => cb.checked = false);
+  [diffMenu, tagMenu, typeMenu, tierMenu].forEach(menu => {
+    menu.querySelectorAll("label").forEach(label => {
+      label.classList.remove("state-include", "state-exclude");
+      const sw = label.querySelector(".tristate");
+      if (sw) sw.classList.remove("state-include", "state-exclude");
+    });
+  });
   updateBtnLabels();
   renderList();
 };

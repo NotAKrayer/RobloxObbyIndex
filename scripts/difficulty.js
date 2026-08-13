@@ -53,7 +53,7 @@ const SUBTIERS = [
 ];
 
 const QUALITIES = ["SS","S+","S","S-","A+","A","A-","B+","B","B-","C+","C","C-","D+","D","D-","F+","F","F-","X"];
-const KNOWN_TAGS = ["Purist","Wallhop","Checkpoints","Speedrun","Jank","Camera control","CO Based","Buff","Nerf","Old Version","Segment"];
+const KNOWN_TAGS = ["Purist","Wallhop","Checkpoints","Speedrun","Jank","Camera Control","CO Based","Buff","Nerf","Old Version","Segment"];
 const RAW_TYPES = ["jump"];
 const TIER_TYPES = ["obby", "wallhop"];
 const NO_SUBTIER_TYPES = ["jump","obby","wallhop"];

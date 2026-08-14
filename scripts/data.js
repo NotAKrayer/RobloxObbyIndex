@@ -13,7 +13,8 @@ async function loadTowers() {
   try {
     const res = await fetch(GVIZ_URL, { cache: "no-store" });
     if (!res.ok) throw new Error(res.status);
-    const raw = await res.json();
+    const json_ = await res.json();
+    const raw = json_.data;
     const json = JSON.parse(raw.slice(raw.indexOf("(") + 1, raw.lastIndexOf(")")));
     const cols = json.table.cols.map(c => (c.label || "").toLowerCase().trim());
 

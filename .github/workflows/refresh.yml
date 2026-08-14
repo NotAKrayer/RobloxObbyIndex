@@ -1,0 +1,12 @@
+name: Refresh Sheet Cache
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping worker
+        run: curl -s "https://твой-воркер.workers.dev/refresh?token=${{ secrets.REFRESH_TOKEN }}"

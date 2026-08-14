@@ -9,4 +9,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping worker
-        run: curl -s "https://твой-воркер.workers.dev/refresh?token=${{ secrets.REFRESH_TOKEN }}"
+        run: curl -s "https://robloxobbyindex.kirillrahimov80.workers.dev/refresh?token=${{ secrets.REFRESH_TOKEN }}"

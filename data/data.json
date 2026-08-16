@@ -3,7 +3,7 @@
     {
       "name": "Tower of Double Trouble",
       "altName": "",
-      "difficulty": 8.03,
+      "difficulty": 8.02,
       "verified": true,
       "verifier": "newaccotherwas2good",
       "tier": "Tower",
@@ -7680,5 +7680,5 @@
     "Tower",
     "Tower Rush"
   ],
-  "fetchedAt": "2026-08-16T17:49:28.752Z"
+  "fetchedAt": "2026-08-16T17:54:24.561Z"
 }

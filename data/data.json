@@ -5681,7 +5681,7 @@
       "location": "CSCD, Scope 0",
       "link": "https://www.roblox.com/games/10283991824/Calebs-Soul-Crushing-Domain",
       "tags": [
-        "Verified",
+        "Unverified",
         "All-Jumped",
         "Punishment"
       ],
@@ -8041,6 +8041,78 @@
         "Wallhop"
       ],
       "lengthRaw": "Very Short (5+ min.)"
+    },
+    {
+      "name": "Not Even a Green",
+      "altName": "Not Even a Pillars Of Creation",
+      "difficulty": {
+        "textOnly": true,
+        "index": 27
+      },
+      "verified": false,
+      "verifier": "",
+      "tier": "Mini Tower",
+      "author": "diesiland",
+      "quality": "---",
+      "location": "2798791721#24",
+      "link": "https://www.roblox.com/games/8646026339/Tower-Creator",
+      "tags": [
+        "Unverified",
+        "Physically Impossible",
+        "Technical"
+      ],
+      "lengthRaw": "Extremely Short (<5 min.)"
+    },
+    {
+      "name": "Tower of Brim Stone",
+      "altName": "",
+      "difficulty": 15.27,
+      "verified": false,
+      "verifier": "",
+      "tier": "Tower",
+      "author": "diesiland",
+      "quality": "---",
+      "location": "7490481242#10",
+      "link": "https://www.roblox.com/games/8646026339/Tower-Creator",
+      "tags": [
+        "Unverified"
+      ],
+      "lengthRaw": "Long (20+ min.)"
+    },
+    {
+      "name": "Tower of Inverted Mud",
+      "altName": "",
+      "difficulty": {
+        "textOnly": true,
+        "index": 10
+      },
+      "verified": false,
+      "verifier": "",
+      "tier": "Tower",
+      "author": "diesiland",
+      "quality": "---",
+      "location": "2798791721#13",
+      "link": "https://www.roblox.com/games/2913303231/Obby-Creator",
+      "tags": [
+        "Unverified"
+      ],
+      "lengthRaw": "Moderate (15+ min.)"
+    },
+    {
+      "name": "Tower of Great Overcomings",
+      "altName": "",
+      "difficulty": 6.49,
+      "verified": true,
+      "verifier": "---",
+      "tier": "Tower",
+      "author": "CUGASTheLooney, novaskaiii, SarkThe2nd",
+      "quality": "---",
+      "location": "EToH, Ring 9",
+      "link": "https://www.roblox.com/games/8562822414/Eternal-Towers-of-Hell",
+      "tags": [
+        "Verified"
+      ],
+      "lengthRaw": "Unknown (??? Min.)"
     }
   ],
   "allTags": [
@@ -8101,5 +8173,5 @@
     "Tower",
     "Tower Rush"
   ],
-  "fetchedAt": "2026-08-16T19:18:55.251Z"
+  "fetchedAt": "2026-08-16T19:46:52.525Z"
 }

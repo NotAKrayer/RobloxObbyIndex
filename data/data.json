@@ -8113,6 +8113,54 @@
         "Verified"
       ],
       "lengthRaw": "Unknown (??? Min.)"
+    },
+    {
+      "name": "Tower of Beat Block Berserk",
+      "altName": "",
+      "difficulty": 7.03,
+      "verified": true,
+      "verifier": "---",
+      "tier": "Tower",
+      "author": "phlygone, Zaikotic",
+      "quality": "---",
+      "location": "EToH, Ring 9",
+      "link": "https://www.roblox.com/games/8562822414/Eternal-Towers-of-Hell",
+      "tags": [
+        "Verified"
+      ],
+      "lengthRaw": "Unknown (??? Min.)"
+    },
+    {
+      "name": "Tower of Questionable Trials",
+      "altName": "",
+      "difficulty": 7.23,
+      "verified": true,
+      "verifier": "---",
+      "tier": "Tower",
+      "author": "TheFredericChopin",
+      "quality": "---",
+      "location": "EToH, Ring 9",
+      "link": "https://www.roblox.com/games/8562822414/Eternal-Towers-of-Hell",
+      "tags": [
+        "Verified"
+      ],
+      "lengthRaw": "Unknown (??? Min.)"
+    },
+    {
+      "name": "Tower of Pastel Pillars",
+      "altName": "",
+      "difficulty": 7.87,
+      "verified": true,
+      "verifier": "---",
+      "tier": "Tower",
+      "author": "Legendarykittens44",
+      "quality": "---",
+      "location": "EToH, Ring 9",
+      "link": "https://www.roblox.com/games/8562822414/Eternal-Towers-of-Hell",
+      "tags": [
+        "Verified"
+      ],
+      "lengthRaw": "Unknown (??? Min.)"
     }
   ],
   "allTags": [
@@ -8173,5 +8221,5 @@
     "Tower",
     "Tower Rush"
   ],
-  "fetchedAt": "2026-08-16T19:46:52.525Z"
+  "fetchedAt": "2026-08-16T20:17:32.875Z"
 }

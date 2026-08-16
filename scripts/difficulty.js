@@ -1,5 +1,3 @@
-const GVIZ_URL = "https://robloxobbyindex.kirillrahimov80.workers.dev";
-
 const DIFFS = ["Effortless","Easy","Medium","Hard","Difficult","Challenging","Intense",
 "Remorseless","Insane","Extreme","Terrifying","Catastrophic","Horrific","Unreal","Nil",
 "Error","Literal","WHY", "No", "DEATH", "HELL", "TARTARUS", "Unimaginable", "Omega", "Aleph-Null", "Immeasurable", "Malicious", "Impossible"];

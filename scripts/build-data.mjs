@@ -173,7 +173,7 @@ async function main() {
   };
 
   await mkdir(path.dirname(OUT_PATH), { recursive: true });
-  await writeFile(OUT_PATH, JSON.stringify(output, null, 2) + "\n", "utf8");
+  await writeFile(OUT_PATH, JSON.stringify(output), "utf8");
   console.log(`Wrote ${towers.length} towers to ${OUT_PATH}`);
 }
 

@@ -4401,7 +4401,7 @@
       "link": "https://www.roblox.com/games/10283991824/Calebs-Soul-Crushing-Domain",
       "tags": [
         "Unverified",
-        "Glitch",
+        "Glitches",
         "Memory",
         "All-Jumped"
       ],
@@ -8369,6 +8369,65 @@
         "Verified"
       ],
       "lengthRaw": "Unknown (??? Min.)"
+    },
+    {
+      "name": "Tower of Big Jumps",
+      "altName": "",
+      "difficulty": {
+        "textOnly": true,
+        "index": 15
+      },
+      "verified": false,
+      "verifier": "",
+      "tier": "Tower",
+      "author": "Cheesedorit0",
+      "quality": "---",
+      "location": "Place",
+      "link": "https://www.roblox.com/games/110210103139141/Tower-of-Big-Jumps",
+      "tags": [
+        "Unverified",
+        "All-Jumped",
+        "Camera Control",
+        "Technical"
+      ],
+      "lengthRaw": "Short (10+ min.)"
+    },
+    {
+      "name": "Tower of Ziggle Core",
+      "altName": "",
+      "difficulty": 15.15,
+      "verified": false,
+      "verifier": "",
+      "tier": "Tower",
+      "author": "Herrypak",
+      "quality": "---",
+      "location": "Place",
+      "link": "https://www.roblox.com/games/89993867711798/Tower-of-Zigglecore",
+      "tags": [
+        "Unverified",
+        "All-Jumped",
+        "Camera Control"
+      ],
+      "lengthRaw": "Very Short (5+ min.)"
+    },
+    {
+      "name": "Tower of Crazy Snakes",
+      "altName": "",
+      "difficulty": 15.5,
+      "verified": false,
+      "verifier": "",
+      "tier": "Tower",
+      "author": "megabruhfart",
+      "quality": "---",
+      "location": "Place",
+      "link": "https://www.roblox.com/games/74568922070839/Crazy-Snakes-Deluxe-Ice-Cream",
+      "tags": [
+        "Unverified",
+        "All-Jumped",
+        "Glitches",
+        "Technical"
+      ],
+      "lengthRaw": "Unknown (??? Min.)"
     }
   ],
   "allTags": [
@@ -8407,7 +8466,7 @@
     "Waiting",
     "Classic",
     "Punishment",
-    "Glitch",
+    "Glitches",
     "Memory",
     "Inaccurate Difficulty",
     "Length",
@@ -8429,5 +8488,5 @@
     "Tower",
     "Tower Rush"
   ],
-  "fetchedAt": "2026-08-17T03:50:10.576Z"
+  "fetchedAt": "2026-08-17T04:37:51.551Z"
 }

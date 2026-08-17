@@ -8428,6 +8428,124 @@
         "Technical"
       ],
       "lengthRaw": "Unknown (??? Min.)"
+    },
+    {
+      "name": "Tower of Astral Fusion",
+      "altName": "",
+      "difficulty": {
+        "textOnly": true,
+        "index": 7
+      },
+      "verified": true,
+      "verifier": "---",
+      "tier": "Tower",
+      "author": "aethernetr",
+      "quality": "---",
+      "location": "ETA, Zones",
+      "link": "https://www.roblox.com/games/114529951152976/EToH-Towers-Archive-Redirector",
+      "tags": [
+        "Verified"
+      ],
+      "lengthRaw": "Unknown (??? Min.)"
+    },
+    {
+      "name": "Tower of Double Trouble (Version 1)",
+      "altName": "",
+      "difficulty": {
+        "textOnly": true,
+        "index": 8
+      },
+      "verified": true,
+      "verifier": "---",
+      "tier": "Tower",
+      "author": "CrazyZe50",
+      "quality": "---",
+      "location": "ETA, Zones",
+      "link": "https://www.roblox.com/games/114529951152976/EToH-Towers-Archive-Redirector",
+      "tags": [
+        "Verified",
+        "Purism",
+        "Old Version"
+      ],
+      "lengthRaw": "Long (20+ min.)"
+    },
+    {
+      "name": "Tower of Astronomically Aimless Annoyances (Garbage Edition)",
+      "altName": "",
+      "difficulty": {
+        "textOnly": true,
+        "index": 9
+      },
+      "verified": true,
+      "verifier": "---",
+      "tier": "Tower",
+      "author": "Cronku",
+      "quality": "---",
+      "location": "ETA, Zones",
+      "link": "https://www.roblox.com/games/114529951152976/EToH-Towers-Archive-Redirector",
+      "tags": [
+        "Verified",
+        "Old Version"
+      ],
+      "lengthRaw": "Unknown (??? Min.)"
+    },
+    {
+      "name": "Unnerfed Tower of Micro Management",
+      "altName": "",
+      "difficulty": {
+        "textOnly": true,
+        "index": 11
+      },
+      "verified": true,
+      "verifier": "---",
+      "tier": "Tower",
+      "author": "iiAlert",
+      "quality": "---",
+      "location": "ETA, Zones",
+      "link": "https://www.roblox.com/games/114529951152976/EToH-Towers-Archive-Redirector",
+      "tags": [
+        "Verified",
+        "Old Version",
+        "Unnerfed"
+      ],
+      "lengthRaw": "Unknown (??? Min.)"
+    },
+    {
+      "name": "Citadel of Latest Difficulty Chart (Version 1)",
+      "altName": "",
+      "difficulty": {
+        "textOnly": true,
+        "index": 10
+      },
+      "verified": true,
+      "verifier": "---",
+      "tier": "Tower",
+      "author": "Ciel_azulsky",
+      "quality": "---",
+      "location": "ETA, Zones",
+      "link": "https://www.roblox.com/games/114529951152976/EToH-Towers-Archive-Redirector",
+      "tags": [
+        "Verified",
+        "Old Version"
+      ],
+      "lengthRaw": "Unknown (??? Min.)"
+    },
+    {
+      "name": "Tower of Double Trouble: Classic",
+      "altName": "",
+      "difficulty": 8.16,
+      "verified": true,
+      "verifier": "---",
+      "tier": "Tower",
+      "author": "CrazyZe50",
+      "quality": "C",
+      "location": "TEA, Timeless Manor",
+      "link": "https://www.roblox.com/games/15873244701/JToH-The-Eternal-Abyss",
+      "tags": [
+        "Verified",
+        "Old Version"
+      ],
+      "lengthRaw": "Long (20+ min.)"
     }
   ],
   "allTags": [
@@ -8488,5 +8606,5 @@
     "Tower",
     "Tower Rush"
   ],
-  "fetchedAt": "2026-08-17T06:47:05.127Z"
+  "fetchedAt": "2026-08-17T07:49:58.211Z"
 }

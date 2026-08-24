@@ -4,13 +4,22 @@ const state = {
   tagFilters: new Map(),
   typeFilters: new Map(),
   tierFilters: new Map(),
+  authorFilters: new Map(),
   sort: "difficulty",
   dir: "desc",
   selected: null,
   search: "",
   allTags: [],
-  allTypes: []
+  allTypes: [],
+  allAuthors: [],
+  authorSearch: ""
 };
+
+// Splits a tower's "author" field ("A, B, C") into a trimmed array of names.
+function splitAuthors(authorStr){
+  if (!authorStr) return [];
+  return authorStr.split(",").map(s => s.trim()).filter(Boolean);
+}
 
 // Cycles a tri-state filter entry: none -> include -> exclude -> none.
 // `map` is one of the state filter Maps, `key` identifies the filter value.
@@ -46,6 +55,12 @@ const typeDropdown = document.getElementById("typeDropdown");
 const tierMenu = document.getElementById("tierMenu");
 const tierBtn = document.getElementById("tierBtn");
 const tierDropdown = document.getElementById("tierDropdown");
+
+const authorMenu = document.getElementById("authorMenu");
+const authorBtn = document.getElementById("authorBtn");
+const authorDropdown = document.getElementById("authorDropdown");
+const authorList = document.getElementById("authorList");
+const authorSearchInput = document.getElementById("authorSearch");
 
 // Builds a tri-state filter option: click cycles none -> include -> exclude -> none.
 function buildTristateOption(container, map, key, labelText){
@@ -94,16 +109,55 @@ function buildTypeMenu(){
   });
 }
 
+// Derives the sorted unique list of individual author names from all towers,
+// splitting each tower's comma-separated "author" field.
+function computeAllAuthors(){
+  const set = new Set();
+  state.towers.forEach(t => splitAuthors(t.author).forEach(a => set.add(a)));
+  return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+}
+
+function buildAuthorMenu(){
+  state.allAuthors = computeAllAuthors();
+  renderAuthorList();
+}
+
+function renderAuthorList(){
+  authorList.innerHTML = "";
+  const q = state.authorSearch.toLowerCase();
+  const names = q ? state.allAuthors.filter(a => a.toLowerCase().includes(q)) : state.allAuthors;
+  if (!names.length) {
+    const empty = document.createElement("div");
+    empty.className = "muted";
+    empty.style.padding = "4px 6px";
+    empty.textContent = "No authors found";
+    authorList.appendChild(empty);
+    return;
+  }
+  names.forEach(name => {
+    buildTristateOption(authorList, state.authorFilters, name, name);
+  });
+}
+
+authorSearchInput.addEventListener("click", e => e.stopPropagation());
+authorSearchInput.addEventListener("input", e => {
+  state.authorSearch = e.target.value;
+  renderAuthorList();
+});
+
 TIER_BANDS.forEach(band => {
   buildTristateOption(tierMenu, state.tierFilters, band, "Tier " + band);
 });
 
-[[diffBtn, diffMenu, diffDropdown],[tagBtn, tagMenu, tagDropdown],[typeBtn, typeMenu, typeDropdown],[tierBtn, tierMenu, tierDropdown]].forEach(([btn, menu, dd]) => {
+[[diffBtn, diffMenu, diffDropdown],[tagBtn, tagMenu, tagDropdown],[typeBtn, typeMenu, typeDropdown],[tierBtn, tierMenu, tierDropdown],[authorBtn, authorMenu, authorDropdown]].forEach(([btn, menu, dd]) => {
   btn.onclick = (e) => {
     e.stopPropagation();
     const wasOpen = menu.classList.contains("open");
-    [diffMenu, tagMenu, typeMenu, tierMenu].forEach(m => m.classList.remove("open"));
-    if (!wasOpen) menu.classList.add("open");
+    [diffMenu, tagMenu, typeMenu, tierMenu, authorMenu].forEach(m => m.classList.remove("open"));
+    if (!wasOpen) {
+      menu.classList.add("open");
+      if (menu === authorMenu) authorSearchInput.focus();
+    }
   };
 });
 document.addEventListener("click", (e) => {
@@ -111,6 +165,7 @@ document.addEventListener("click", (e) => {
   if (!tagDropdown.contains(e.target)) tagMenu.classList.remove("open");
   if (!typeDropdown.contains(e.target)) typeMenu.classList.remove("open");
   if (!tierDropdown.contains(e.target)) tierMenu.classList.remove("open");
+  if (!authorDropdown.contains(e.target)) authorMenu.classList.remove("open");
 });
 
 function filterBtnLabel(base, map){
@@ -128,6 +183,7 @@ function updateBtnLabels(){
   tagBtn.textContent = filterBtnLabel("Tags", state.tagFilters);
   typeBtn.textContent = filterBtnLabel("Type", state.typeFilters);
   tierBtn.textContent = filterBtnLabel("Tier", state.tierFilters);
+  authorBtn.textContent = filterBtnLabel("Authors", state.authorFilters);
 }
 
 document.getElementById("clear").onclick = () => {
@@ -135,7 +191,10 @@ document.getElementById("clear").onclick = () => {
   state.tagFilters.clear();
   state.typeFilters.clear();
   state.tierFilters.clear();
-  [diffMenu, tagMenu, typeMenu, tierMenu].forEach(menu => {
+  state.authorFilters.clear();
+  state.authorSearch = "";
+  authorSearchInput.value = "";
+  [diffMenu, tagMenu, typeMenu, tierMenu, authorMenu].forEach(menu => {
     menu.querySelectorAll("label").forEach(label => {
       label.classList.remove("state-include", "state-exclude");
       const sw = label.querySelector(".tristate");
@@ -177,3 +236,14 @@ document.getElementById("siteInfoBtn").onclick = () => {
 };
 document.getElementById("siteInfoModalClose").onclick = () => siteInfoModalOverlay.classList.remove("open");
 siteInfoModalOverlay.addEventListener("click", (e) => { if (e.target === siteInfoModalOverlay) siteInfoModalOverlay.classList.remove("open"); });
+
+document.getElementById("randomBtn").onclick = () => {
+  const arr = getFilteredTowers();
+  if (!arr.length) return;
+  const pick = arr[Math.floor(Math.random() * arr.length)];
+  state.selected = pick;
+  renderList();
+  renderInfo(pick);
+  const row = listEl.querySelector(".row.sel");
+  if (row) row.scrollIntoView({ block: "nearest" });
+};

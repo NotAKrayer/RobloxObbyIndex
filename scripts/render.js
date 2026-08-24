@@ -72,18 +72,20 @@ function sortValue(t){
   return d;
 }
 
-function renderList() {
+// Splits a tri-state filter Map into include/exclude key sets.
+function splitFilters(map){
+  const include = new Set(), exclude = new Set();
+  map.forEach((v, k) => (v === "exclude" ? exclude : include).add(k));
+  return { include, exclude };
+}
+
+// Applies search + all active filters (difficulty, tags, type, tier, authors)
+// to state.towers and returns the resulting array, without sorting.
+function getFilteredTowers() {
   let arr = state.towers.slice();
 
   if (state.search) {
     arr = arr.filter(t => t.name.toLowerCase().includes(state.search));
-  }
-
-  // Splits a tri-state filter Map into include/exclude key sets.
-  function splitFilters(map){
-    const include = new Set(), exclude = new Set();
-    map.forEach((v, k) => (v === "exclude" ? exclude : include).add(k));
-    return { include, exclude };
   }
 
   if (state.diffFilters.size) {
@@ -144,6 +146,22 @@ function renderList() {
       return key != null && include.has(key);
     });
   }
+
+  if (state.authorFilters.size) {
+    const { include, exclude } = splitFilters(state.authorFilters);
+    arr = arr.filter(t => {
+      const authors = splitAuthors(t.author);
+      if (authors.some(a => exclude.has(a))) return false;
+      if (!include.size) return true;
+      return authors.some(a => include.has(a));
+    });
+  }
+
+  return arr;
+}
+
+function renderList() {
+  let arr = getFilteredTowers();
 
   arr.sort((a, b) => {
     let r;

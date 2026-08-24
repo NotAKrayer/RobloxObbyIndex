@@ -22,6 +22,7 @@ async function loadTowers() {
     state.allTypes = data.allTypes;
     buildTagMenu();
     buildTypeMenu();
+    buildAuthorMenu();
     renderList();
   } catch (e) {
     listEl.innerHTML = '<div class="muted">Failed to load the list, please try again later</div>';

@@ -36,7 +36,16 @@
     <div class="dropdown-menu" id="typeMenu"></div>
   </div>
 
+  <div class="dropdown" id="authorDropdown">
+    <button class="dropdown-btn" id="authorBtn">Authors ▾</button>
+    <div class="dropdown-menu" id="authorMenu">
+      <input type="text" id="authorSearch" placeholder="Search author" class="dropdown-search">
+      <div id="authorList"></div>
+    </div>
+  </div>
+
   <button id="clear">Clear</button>
+  <button id="randomBtn" title="Pick a random obby from the current filters">🎲 Random</button>
 
   <span class="label">Sort by:</span>
   <select id="sort">

@@ -227,7 +227,7 @@ const JUMP_ANCHORS = [
   [5, mid("Insane","Extreme") + 0.15],
   [6, mid("Extreme","Terrifying")],
   [7, mid("Catastrophic","Horrific")],
-  [8, mid("Horrific","Unreal")],
+  [8, mid("Horrific","Unreal") - 0.20],
   [9, mid("Unreal","Nil")]
 ];
 const JUMP_ANCHOR_MAP = new Map(JUMP_ANCHORS);

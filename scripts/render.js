@@ -65,7 +65,7 @@ function sortValue(t){
   if (isTierSubtierDiff(d)) return tierToVirtualDifficulty(Math.floor(d.tierNum), d.subtierName);
 
   if (RAW_TYPES.includes(nt)) {
-    if (nt === "jump") return jumpToVirtualDifficulty(Math.floor(d));
+    if (nt === "jump") return jumpToVirtualDifficulty(d);
     return d;
   }
   if (TIER_TYPES.includes(nt)) return tierToVirtualDifficulty(Math.floor(d));

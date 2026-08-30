@@ -44,6 +44,14 @@
     </div>
   </div>
 
+  <div class="dropdown" id="gameDropdown">
+    <button class="dropdown-btn" id="gameBtn">Game ▾</button>
+    <div class="dropdown-menu" id="gameMenu">
+      <input type="text" id="gameSearch" placeholder="Search game" class="dropdown-search">
+      <div id="gameList"></div>
+    </div>
+  </div>
+
   <button id="clear">Clear</button>
   <button id="randomBtn" title="Pick a random obby from the current filters">Random</button>
 
@@ -60,7 +68,7 @@
 
 <main>
   <section class="card">
-    <h2>Obbies List</h2>
+    <h2>Obbies List <span class="count" id="listCount"></span></h2>
     <div class="list" id="list"><div class="muted">Loading...</div></div>
   </section>
 

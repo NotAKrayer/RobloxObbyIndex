@@ -79,14 +79,13 @@ function splitFilters(map){
   return { include, exclude };
 }
 
-// Applies search + all active filters (difficulty, tags, type, tier, authors)
-// to state.towers and returns the resulting array, without sorting.
-function getFilteredTowers() {
+// Applies all active non-search filters (difficulty, tags, type, tier,
+// authors, location) to state.towers and returns the resulting array,
+// without sorting and without applying the search text filter.
+// Kept separate from search so a tower's rank number can be computed
+// against this filtered-but-unsearched set (see renderList).
+function getFilteredTowersNoSearch() {
   let arr = state.towers.slice();
-
-  if (state.search) {
-    arr = arr.filter(t => t.name.toLowerCase().includes(state.search));
-  }
 
   if (state.diffFilters.size) {
     const { include, exclude } = splitFilters(state.diffFilters);
@@ -157,12 +156,30 @@ function getFilteredTowers() {
     });
   }
 
+  if (state.gameFilters.size) {
+    const { include, exclude } = splitFilters(state.gameFilters);
+    arr = arr.filter(t => {
+      const games = splitBaseGames(t.location);
+      if (games.some(g => exclude.has(g))) return false;
+      if (!include.size) return true;
+      return games.some(g => include.has(g));
+    });
+  }
+
   return arr;
 }
 
-function renderList() {
-  let arr = getFilteredTowers();
+// Applies search on top of getFilteredTowersNoSearch(). Used by callers
+// (like the Random button) that want the fully filtered set including search.
+function getFilteredTowers() {
+  let arr = getFilteredTowersNoSearch();
+  if (state.search) {
+    arr = arr.filter(t => t.name.toLowerCase().includes(state.search));
+  }
+  return arr;
+}
 
+function sortTowers(arr){
   arr.sort((a, b) => {
     let r;
     if (state.sort === "quality") {
@@ -179,15 +196,37 @@ function renderList() {
     }
     return state.dir === "desc" ? -r : r;
   });
+  return arr;
+}
+
+function renderList() {
+  // Rank is computed from the filtered-but-unsearched list, so a tower's
+  // position (e.g. #200) stays the same when a search term narrows the
+  // visible rows, instead of collapsing to #1.
+  const ranked = sortTowers(getFilteredTowersNoSearch());
+  const rankByTower = new Map();
+  ranked.forEach((t, idx) => rankByTower.set(t, idx + 1));
+
+  let arr = ranked;
+  if (state.search) {
+    arr = ranked.filter(t => t.name.toLowerCase().includes(state.search));
+  }
+
+  const countEl = document.getElementById("listCount");
+  if (countEl) {
+    countEl.textContent = state.search
+      ? `(${arr.length} of ${ranked.length})`
+      : `(${ranked.length})`;
+  }
 
   listEl.innerHTML = "";
   if (!arr.length) { listEl.innerHTML = '<div class="muted">There is no obby based on the selected filters</div>'; return; }
 
-  arr.forEach((t, idx) => {
+  arr.forEach((t) => {
     const fd = formatDifficulty(t);
     const row = document.createElement("div");
     row.className = "row" + (state.selected === t ? " sel" : "");
-    row.innerHTML = `<span class="n">#${idx + 1}</span><span class="name">${esc(t.name)}</span><span class="d" style="color:${fd.color}">${esc(fd.text)}</span>`;
+    row.innerHTML = `<span class="n">#${rankByTower.get(t)}</span><span class="name">${esc(t.name)}</span><span class="d" style="color:${fd.color}">${esc(fd.text)}</span>`;
     row.onclick = () => { state.selected = t; renderList(); renderInfo(t); };
     listEl.appendChild(row);
   });

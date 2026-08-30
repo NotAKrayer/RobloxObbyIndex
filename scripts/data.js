@@ -23,6 +23,7 @@ async function loadTowers() {
     buildTagMenu();
     buildTypeMenu();
     buildAuthorMenu();
+    buildGameMenu();
     renderList();
   } catch (e) {
     listEl.innerHTML = '<div class="muted">Failed to load the list, please try again later</div>';

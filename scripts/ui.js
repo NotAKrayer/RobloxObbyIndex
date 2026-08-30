@@ -5,6 +5,7 @@ const state = {
   typeFilters: new Map(),
   tierFilters: new Map(),
   authorFilters: new Map(),
+  gameFilters: new Map(),
   sort: "difficulty",
   dir: "desc",
   selected: null,
@@ -12,13 +13,32 @@ const state = {
   allTags: [],
   allTypes: [],
   allAuthors: [],
-  authorSearch: ""
+  allGames: [],
+  authorSearch: "",
+  gameSearch: ""
 };
 
 // Splits a tower's "author" field ("A, B, C") into a trimmed array of names.
 function splitAuthors(authorStr){
   if (!authorStr) return [];
   return authorStr.split(",").map(s => s.trim()).filter(Boolean);
+}
+
+// Splits a tower's "location" field ("EToH, Zone 2; Place") into individual
+// location entries, then reduces each to its base game name
+// (the part before the first comma, e.g. "EToH").
+function splitLocations(locationStr){
+  if (!locationStr) return [];
+  return locationStr.split(";").map(s => s.trim()).filter(Boolean);
+}
+function baseGameName(locEntry){
+  const idx = locEntry.indexOf(",");
+  return (idx === -1 ? locEntry : locEntry.slice(0, idx)).trim();
+}
+function splitBaseGames(locationStr){
+  const set = new Set();
+  splitLocations(locationStr).forEach(l => { const b = baseGameName(l); if (b) set.add(b); });
+  return Array.from(set);
 }
 
 // Cycles a tri-state filter entry: none -> include -> exclude -> none.
@@ -61,6 +81,12 @@ const authorBtn = document.getElementById("authorBtn");
 const authorDropdown = document.getElementById("authorDropdown");
 const authorList = document.getElementById("authorList");
 const authorSearchInput = document.getElementById("authorSearch");
+
+const gameMenu = document.getElementById("gameMenu");
+const gameBtn = document.getElementById("gameBtn");
+const gameDropdown = document.getElementById("gameDropdown");
+const gameList = document.getElementById("gameList");
+const gameSearchInput = document.getElementById("gameSearch");
 
 // Builds a tri-state filter option: click cycles none -> include -> exclude -> none.
 function buildTristateOption(container, map, key, labelText){
@@ -145,18 +171,54 @@ authorSearchInput.addEventListener("input", e => {
   renderAuthorList();
 });
 
+// Derives the sorted unique list of base game names from all towers.
+function computeAllGames(){
+  const set = new Set();
+  state.towers.forEach(t => splitBaseGames(t.location).forEach(g => set.add(g)));
+  return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+}
+
+function buildGameMenu(){
+  state.allGames = computeAllGames();
+  renderGameList();
+}
+
+function renderGameList(){
+  gameList.innerHTML = "";
+  const q = state.gameSearch.toLowerCase();
+  const names = q ? state.allGames.filter(g => g.toLowerCase().includes(q)) : state.allGames;
+  if (!names.length) {
+    const empty = document.createElement("div");
+    empty.className = "muted";
+    empty.style.padding = "4px 6px";
+    empty.textContent = "No games found";
+    gameList.appendChild(empty);
+    return;
+  }
+  names.forEach(name => {
+    buildTristateOption(gameList, state.gameFilters, name, name);
+  });
+}
+
+gameSearchInput.addEventListener("click", e => e.stopPropagation());
+gameSearchInput.addEventListener("input", e => {
+  state.gameSearch = e.target.value;
+  renderGameList();
+});
+
 TIER_BANDS.forEach(band => {
   buildTristateOption(tierMenu, state.tierFilters, band, "Tier " + band);
 });
 
-[[diffBtn, diffMenu, diffDropdown],[tagBtn, tagMenu, tagDropdown],[typeBtn, typeMenu, typeDropdown],[tierBtn, tierMenu, tierDropdown],[authorBtn, authorMenu, authorDropdown]].forEach(([btn, menu, dd]) => {
+[[diffBtn, diffMenu, diffDropdown],[tagBtn, tagMenu, tagDropdown],[typeBtn, typeMenu, typeDropdown],[tierBtn, tierMenu, tierDropdown],[authorBtn, authorMenu, authorDropdown],[gameBtn, gameMenu, gameDropdown]].forEach(([btn, menu, dd]) => {
   btn.onclick = (e) => {
     e.stopPropagation();
     const wasOpen = menu.classList.contains("open");
-    [diffMenu, tagMenu, typeMenu, tierMenu, authorMenu].forEach(m => m.classList.remove("open"));
+    [diffMenu, tagMenu, typeMenu, tierMenu, authorMenu, gameMenu].forEach(m => m.classList.remove("open"));
     if (!wasOpen) {
       menu.classList.add("open");
       if (menu === authorMenu) authorSearchInput.focus();
+      if (menu === gameMenu) gameSearchInput.focus();
     }
   };
 });
@@ -166,6 +228,7 @@ document.addEventListener("click", (e) => {
   if (!typeDropdown.contains(e.target)) typeMenu.classList.remove("open");
   if (!tierDropdown.contains(e.target)) tierMenu.classList.remove("open");
   if (!authorDropdown.contains(e.target)) authorMenu.classList.remove("open");
+  if (!gameDropdown.contains(e.target)) gameMenu.classList.remove("open");
 });
 
 function filterBtnLabel(base, map){
@@ -184,6 +247,7 @@ function updateBtnLabels(){
   typeBtn.textContent = filterBtnLabel("Type", state.typeFilters);
   tierBtn.textContent = filterBtnLabel("Tier", state.tierFilters);
   authorBtn.textContent = filterBtnLabel("Authors", state.authorFilters);
+  gameBtn.textContent = filterBtnLabel("Game", state.gameFilters);
 }
 
 document.getElementById("clear").onclick = () => {
@@ -192,9 +256,12 @@ document.getElementById("clear").onclick = () => {
   state.typeFilters.clear();
   state.tierFilters.clear();
   state.authorFilters.clear();
+  state.gameFilters.clear();
   state.authorSearch = "";
+  state.gameSearch = "";
   authorSearchInput.value = "";
-  [diffMenu, tagMenu, typeMenu, tierMenu, authorMenu].forEach(menu => {
+  gameSearchInput.value = "";
+  [diffMenu, tagMenu, typeMenu, tierMenu, authorMenu, gameMenu].forEach(menu => {
     menu.querySelectorAll("label").forEach(label => {
       label.classList.remove("state-include", "state-exclude");
       const sw = label.querySelector(".tristate");

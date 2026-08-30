@@ -169,8 +169,6 @@ function getFilteredTowersNoSearch() {
   return arr;
 }
 
-// Applies search on top of getFilteredTowersNoSearch(). Used by callers
-// (like the Random button) that want the fully filtered set including search.
 function getFilteredTowers() {
   let arr = getFilteredTowersNoSearch();
   if (state.search) {
@@ -200,9 +198,6 @@ function sortTowers(arr){
 }
 
 function renderList() {
-  // Rank is computed from the filtered-but-unsearched list, so a tower's
-  // position (e.g. #200) stays the same when a search term narrows the
-  // visible rows, instead of collapsing to #1.
   const ranked = sortTowers(getFilteredTowersNoSearch());
   const rankByTower = new Map();
   ranked.forEach((t, idx) => rankByTower.set(t, idx + 1));

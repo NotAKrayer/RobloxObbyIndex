@@ -79,15 +79,16 @@ main{display:grid;grid-template-columns:1fr 380px;gap:10px;padding:10px}
 .card h2{margin:0;padding:8px 12px;font-size:14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--bg2)}
 .card h2 .count{font-size:12px;font-weight:normal;color:var(--muted)}
 .list{max-height:65vh;overflow:auto}
-.row{display:flex;justify-content:space-between;gap:10px;padding:6px 10px;border-bottom:1px solid var(--border);cursor:pointer}
+.row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:6px 10px;border-bottom:1px solid var(--border);cursor:pointer}
 .row:hover,.row.sel{background:var(--hover)}
 .row .n{width:40px;flex:none;color:var(--muted)}
-.row .name{flex:1}
-.row .d{white-space:nowrap}
+.row .name{flex:1;min-width:0;overflow-wrap:anywhere;word-break:break-word}
+.row .d{white-space:nowrap;flex:none}
 .info{padding:12px}
-.info .t{font-size:15px;font-weight:bold;margin-bottom:8px}
+.info .t{font-size:15px;font-weight:bold;margin-bottom:8px;overflow-wrap:anywhere;word-break:break-word}
 .kv{display:grid;grid-template-columns:110px 1fr;gap:4px 8px}
-.kv a{color:var(--link)}
+.kv b{overflow-wrap:anywhere;word-break:break-word;min-width:0}
+.kv a{color:var(--link);overflow-wrap:anywhere;word-break:break-word}
 .muted{padding:10px;color:var(--muted)}
 .tagchip{display:inline-block;background:var(--hover);border:1px solid var(--border2);border-radius:3px;padding:1px 6px;margin:1px 4px 1px 0;font-size:12px}
 

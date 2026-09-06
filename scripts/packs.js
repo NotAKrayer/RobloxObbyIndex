@@ -160,8 +160,9 @@ function getFilteredPacksNoSearch(){
     arr = arr.filter(p => p.towers.some(n => {
       const t = packState.towerByName.get(n.toLowerCase());
       if (!t || normType(t.tier) !== "jump") return false;
-      const v = effectiveDifficultyValue(t);
-      return v != null && v !== UNKNOWN && v >= packState.minDiff;
+      const raw = t.difficulty;
+      if (raw == null || isUnknownDiff(raw) || isTextOnlyDiff(raw) || isTierSubtierDiff(raw)) return false;
+      return raw >= packState.minDiff;
     }));
   }
 

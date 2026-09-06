@@ -157,7 +157,12 @@ function getFilteredPacksNoSearch(){
   }
 
   if (packState.minDiff != null) {
-    arr = arr.filter(p => p.hardestDifficultyValue != null && p.hardestDifficultyValue >= packState.minDiff);
+    arr = arr.filter(p => p.towers.some(n => {
+      const t = packState.towerByName.get(n.toLowerCase());
+      if (!t || normType(t.tier) !== "jump") return false;
+      const v = effectiveDifficultyValue(t);
+      return v != null && v !== UNKNOWN && v >= packState.minDiff;
+    }));
   }
 
   return arr;

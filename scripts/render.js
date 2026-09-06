@@ -163,6 +163,7 @@ function getFilteredTowersNoSearch() {
 
   if (state.minDiff != null) {
     arr = arr.filter(t => {
+      if (normType(t.tier) !== "jump") return false;
       const v = effectiveDifficultyValue(t);
       return v != null && v !== UNKNOWN && v >= state.minDiff;
     });

@@ -92,11 +92,22 @@ packDirBtn.onclick = () => {
   renderPackList();
 };
 
+function packHardestTower(pack){
+  if (!pack.hardestTowerName) return null;
+  return packState.towerByName.get(pack.hardestTowerName.toLowerCase()) || null;
+}
+
 function packDiffKey(pack){
-  if (pack.hardestDifficultyValue == null) return pack.towers.length ? UNKNOWN : null;
-  const i = Math.floor(pack.hardestDifficultyValue);
-  if (i < 0 || i >= DIFFS.length) return null;
-  return i;
+  const t = packHardestTower(pack);
+  if (!t) return pack.towers.length ? UNKNOWN : null;
+  const d = t.difficulty;
+  if (d == null) return pack.towers.length ? UNKNOWN : null;
+  if (isUnknownDiff(d)) return UNKNOWN;
+  const nt = normType(t.tier);
+  if (RAW_TYPES.includes(nt) || TIER_TYPES.includes(nt)) return null;
+  if (isTextOnlyDiff(d)) return d.index;
+  const ci = diffClass(effectiveDifficultyValue(t));
+  return ci == null ? null : ci;
 }
 
 function packCountKey(pack){
@@ -172,12 +183,9 @@ function ensureGlobalPackRanks(){
 }
 
 function formatPackDifficulty(pack){
-  if (pack.hardestDifficultyValue == null) {
-    return { text: pack.towers.length ? "Unknown" : "N/A", color: "#888" };
-  }
-  const i = Math.floor(pack.hardestDifficultyValue);
-  if (i < 0 || i >= DIFFS.length) return { text: String(pack.hardestDifficultyValue), color: "#888" };
-  return { text: DIFFS[i], color: COLORS[i] };
+  const t = packHardestTower(pack);
+  if (!t) return { text: pack.towers.length ? "Unknown" : "N/A", color: "#888" };
+  return formatDifficulty(t);
 }
 
 function renderPackList(){
@@ -226,10 +234,6 @@ function renderPackInfo(pack){
     </div>`;
   }).join("");
 
-  const missingHtml = pack.missingTowers && pack.missingTowers.length
-    ? `<div class="pack-missing">Not found in the obby list: ${pack.missingTowers.map(esc).join(", ")}</div>`
-    : "";
-
   packInfoEl.innerHTML = `
     <div class="t">${esc(pack.name)}</div>
     <div class="kv">
@@ -238,7 +242,6 @@ function renderPackInfo(pack){
       <span>Obby Count</span><b>${pack.obbyCount}</b>
     </div>
     <div class="pack-tower-list">${towerRows}</div>
-    ${missingHtml}
   `;
 
   packInfoEl.querySelectorAll(".pname[data-tower]").forEach(el => {
@@ -256,6 +259,11 @@ function renderPackInfo(pack){
   });
 }
 
+function packsForTower(t){
+  if (!t) return [];
+  return packState.packs.filter(p => p.towers.some(n => n.toLowerCase() === t.name.toLowerCase()));
+}
+
 function loadPacksFromData(rawPacks){
   packState.packs = rawPacks || [];
   packState.towerByName = new Map();
@@ -265,4 +273,5 @@ function loadPacksFromData(rawPacks){
   });
   updatePackBtnLabels();
   renderPackList();
+  if (state.selected) renderInfo(state.selected);
 }

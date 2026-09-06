@@ -33,7 +33,7 @@ function formatDifficulty(t){
   }
 
   if (isTierSubtierDiff(d)) {
-    return { text: d.subtierName + " Tier " + d.tierNum, color: "#888" };
+    return { text: "Tier " + d.tierNum, color: "#888" };
   }
 
   if (RAW_TYPES.includes(nt)) {
@@ -280,6 +280,11 @@ function renderInfo(t) {
     ? `<span>Alt. Name:</span><b>${esc(t.altName)}</b>`
     : "";
 
+  const packs = typeof packsForTower === "function" ? packsForTower(t) : [];
+  const packsHtml = packs.length
+    ? packs.map(p => `<span class="tagchip" data-pack="${esc(p.name)}">${esc(p.name)}</span>`).join("")
+    : "N/A";
+
   infoEl.innerHTML = `
     <div class="t">${esc(t.name)}</div>
     <div class="kv">
@@ -294,7 +299,22 @@ function renderInfo(t) {
       <span>Quality</span><b>${t.quality || "N/A"}</b>
       <span>Location(s)</span><b>${locHtml}</b>
       <span>Tags</span><b>${tagsHtml}</b>
+      <span>Pack(s)</span><b>${packsHtml}</b>
     </div>`;
+
+  infoEl.querySelectorAll(".tagchip[data-pack]").forEach(el => {
+    el.onclick = () => {
+      const name = el.getAttribute("data-pack");
+      const p = packState.packs.find(pp => pp.name === name);
+      if (!p) return;
+      switchToTab("packs");
+      packState.selected = p;
+      renderPackList();
+      renderPackInfo(p);
+      const row = packListEl.querySelector(".row.sel");
+      if (row) row.scrollIntoView({ block: "nearest" });
+    };
+  });
 }
 updateBtnLabels();
 buildTagMenu();

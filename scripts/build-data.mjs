@@ -243,11 +243,9 @@ async function main() {
 
     packs = rawPacks.map(({ packName, towerNames }) => {
       const resolved = [];
-      const missing = [];
       towerNames.forEach(n => {
         const t = towerByName.get(nameKey(n));
         if (t) resolved.push(t.name);
-        else missing.push(n);
       });
 
       resolved.sort((a, b) => sortValueByName(b, towerByName) - sortValueByName(a, towerByName));
@@ -263,7 +261,6 @@ async function main() {
       return {
         name: packName,
         towers: resolved,
-        missingTowers: missing,
         obbyCount: resolved.length,
         hardestTowerName,
         hardestDifficultyValue: hardestValue

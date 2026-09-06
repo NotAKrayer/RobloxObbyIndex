@@ -110,7 +110,6 @@ main{display:grid;grid-template-columns:1fr 380px;gap:10px;padding:10px}
 .pack-tower-row .pname{flex:1;min-width:0;overflow-wrap:anywhere;word-break:break-word;cursor:pointer}
 .pack-tower-row .pname:hover{color:var(--link)}
 .pack-tower-row .pd{white-space:nowrap;flex:none}
-.pack-missing{color:var(--muted);font-size:12px;margin-top:6px}
 
 .info-btn{margin-left:auto}
 

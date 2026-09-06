@@ -33,7 +33,8 @@ function formatDifficulty(t){
   }
 
   if (isTierSubtierDiff(d)) {
-    return { text: "Tier " + d.tierNum, color: "#888" };
+    const prefix = d.subtierName ? d.subtierName + " " : "";
+    return { text: prefix + "Tier " + d.tierNum, color: "#888" };
   }
 
   if (RAW_TYPES.includes(nt)) {
@@ -157,6 +158,13 @@ function getFilteredTowersNoSearch() {
       if (games.some(g => exclude.has(g))) return false;
       if (!include.size) return true;
       return games.some(g => include.has(g));
+    });
+  }
+
+  if (state.minDiff != null) {
+    arr = arr.filter(t => {
+      const v = effectiveDifficultyValue(t);
+      return v != null && v !== UNKNOWN && v >= state.minDiff;
     });
   }
 

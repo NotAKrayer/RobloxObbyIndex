@@ -15,7 +15,8 @@ const state = {
   allAuthors: [],
   allGames: [],
   authorSearch: "",
-  gameSearch: ""
+  gameSearch: "",
+  minDiff: null
 };
 
 // Splits a tower's "author" field ("A, B, C") into a trimmed array of names.
@@ -89,7 +90,8 @@ const gameList = document.getElementById("gameList");
 const gameSearchInput = document.getElementById("gameSearch");
 
 // Builds a tri-state filter option: click cycles none -> include -> exclude -> none.
-function buildTristateOption(container, map, key, labelText){
+function buildTristateOption(container, map, key, labelText, onChange){
+  const notify = onChange || (() => { updateBtnLabels(); renderList(); });
   const label = document.createElement("label");
   const swatch = document.createElement("span");
   swatch.className = "tristate";
@@ -103,8 +105,7 @@ function buildTristateOption(container, map, key, labelText){
     swatch.classList.remove("state-include", "state-exclude");
     if (next === "include") { label.classList.add("state-include"); swatch.classList.add("state-include"); }
     if (next === "exclude") { label.classList.add("state-exclude"); swatch.classList.add("state-exclude"); }
-    updateBtnLabels();
-    renderList();
+    notify();
   };
   label.appendChild(swatch);
   label.appendChild(document.createTextNode(" " + labelText));
@@ -259,8 +260,10 @@ document.getElementById("clear").onclick = () => {
   state.gameFilters.clear();
   state.authorSearch = "";
   state.gameSearch = "";
+  state.minDiff = null;
   authorSearchInput.value = "";
   gameSearchInput.value = "";
+  if (minDiffInput) minDiffInput.value = "";
   [diffMenu, tagMenu, typeMenu, tierMenu, authorMenu, gameMenu].forEach(menu => {
     menu.querySelectorAll("label").forEach(label => {
       label.classList.remove("state-include", "state-exclude");
@@ -273,6 +276,15 @@ document.getElementById("clear").onclick = () => {
 };
 document.getElementById("sort").onchange = e => { state.sort = e.target.value; renderList(); };
 document.getElementById("search").oninput = e => { state.search = e.target.value.trim().toLowerCase(); renderList(); };
+
+const minDiffInput = document.getElementById("minDiff");
+if (minDiffInput) {
+  minDiffInput.oninput = e => {
+    const v = parseFloat(e.target.value.replace(",", "."));
+    state.minDiff = isNaN(v) ? null : v;
+    renderList();
+  };
+}
 
 const dirBtn = document.getElementById("dir");
 dirBtn.onclick = () => {

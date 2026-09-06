@@ -8,7 +8,8 @@ const packState = {
   sort: "difficulty",
   dir: "desc",
   selected: null,
-  search: ""
+  search: "",
+  minDiff: null
 };
 
 const packListEl = document.getElementById("packList");
@@ -29,15 +30,20 @@ const PACK_COUNT_BUCKETS = [
   { key: "11+", label: "11+", test: n => n >= 11 }
 ];
 
+function notifyPackFilterChange(){
+  updatePackBtnLabels();
+  renderPackList();
+}
+
 DIFFS.forEach((d, i) => {
-  buildTristateOption(packDiffMenu, packState.diffFilters, i, d);
+  buildTristateOption(packDiffMenu, packState.diffFilters, i, d, notifyPackFilterChange);
 });
 (function addPackUnknownFilterOption(){
-  buildTristateOption(packDiffMenu, packState.diffFilters, UNKNOWN, "Unknown");
+  buildTristateOption(packDiffMenu, packState.diffFilters, UNKNOWN, "Unknown", notifyPackFilterChange);
 })();
 
 PACK_COUNT_BUCKETS.forEach(b => {
-  buildTristateOption(packCountMenu, packState.countFilters, b.key, b.label);
+  buildTristateOption(packCountMenu, packState.countFilters, b.key, b.label, notifyPackFilterChange);
 });
 
 [[packDiffBtn, packDiffMenu, packDiffDropdown], [packCountBtn, packCountMenu, packCountDropdown]].forEach(([btn, menu, dd]) => {
@@ -71,6 +77,8 @@ function updatePackBtnLabels(){
 document.getElementById("packClear").onclick = () => {
   packState.diffFilters.clear();
   packState.countFilters.clear();
+  packState.minDiff = null;
+  if (packMinDiffInput) packMinDiffInput.value = "";
   [packDiffMenu, packCountMenu].forEach(menu => {
     menu.querySelectorAll("label").forEach(label => {
       label.classList.remove("state-include", "state-exclude");
@@ -84,6 +92,15 @@ document.getElementById("packClear").onclick = () => {
 
 document.getElementById("packSort").onchange = e => { packState.sort = e.target.value; renderPackList(); };
 document.getElementById("packSearch").oninput = e => { packState.search = e.target.value.trim().toLowerCase(); renderPackList(); };
+
+const packMinDiffInput = document.getElementById("packMinDiff");
+if (packMinDiffInput) {
+  packMinDiffInput.oninput = e => {
+    const v = parseFloat(e.target.value.replace(",", "."));
+    packState.minDiff = isNaN(v) ? null : v;
+    renderPackList();
+  };
+}
 
 const packDirBtn = document.getElementById("packDir");
 packDirBtn.onclick = () => {
@@ -137,6 +154,10 @@ function getFilteredPacksNoSearch(){
       if (!include.size) return true;
       return key != null && include.has(key);
     });
+  }
+
+  if (packState.minDiff != null) {
+    arr = arr.filter(p => p.hardestDifficultyValue != null && p.hardestDifficultyValue >= packState.minDiff);
   }
 
   return arr;

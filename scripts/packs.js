@@ -1,0 +1,268 @@
+// ---- state, filters, sorting, rendering and other stuff for packs ----
+
+const packState = {
+  packs: [],
+  towerByName: new Map(),
+  diffFilters: new Map(),
+  countFilters: new Map(),
+  sort: "difficulty",
+  dir: "desc",
+  selected: null,
+  search: ""
+};
+
+const packListEl = document.getElementById("packList");
+const packInfoEl = document.getElementById("packInfo");
+
+const packDiffMenu = document.getElementById("packDiffMenu");
+const packDiffBtn = document.getElementById("packDiffBtn");
+const packDiffDropdown = document.getElementById("packDiffDropdown");
+
+const packCountMenu = document.getElementById("packCountMenu");
+const packCountBtn = document.getElementById("packCountBtn");
+const packCountDropdown = document.getElementById("packCountDropdown");
+
+const PACK_COUNT_BUCKETS = [
+  { key: "1-3", label: "1–3", test: n => n >= 1 && n <= 3 },
+  { key: "4-6", label: "4–6", test: n => n >= 4 && n <= 6 },
+  { key: "7-10", label: "7–10", test: n => n >= 7 && n <= 10 },
+  { key: "11+", label: "11+", test: n => n >= 11 }
+];
+
+DIFFS.forEach((d, i) => {
+  buildTristateOption(packDiffMenu, packState.diffFilters, i, d);
+});
+(function addPackUnknownFilterOption(){
+  buildTristateOption(packDiffMenu, packState.diffFilters, UNKNOWN, "Unknown");
+})();
+
+PACK_COUNT_BUCKETS.forEach(b => {
+  buildTristateOption(packCountMenu, packState.countFilters, b.key, b.label);
+});
+
+[[packDiffBtn, packDiffMenu, packDiffDropdown], [packCountBtn, packCountMenu, packCountDropdown]].forEach(([btn, menu, dd]) => {
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    const wasOpen = menu.classList.contains("open");
+    [packDiffMenu, packCountMenu].forEach(m => m.classList.remove("open"));
+    if (!wasOpen) menu.classList.add("open");
+  };
+});
+document.addEventListener("click", (e) => {
+  if (!packDiffDropdown.contains(e.target)) packDiffMenu.classList.remove("open");
+  if (!packCountDropdown.contains(e.target)) packCountMenu.classList.remove("open");
+});
+
+function packFilterBtnLabel(base, map){
+  if (!map.size) return base + " ▾";
+  let inc = 0, exc = 0;
+  map.forEach(v => v === "exclude" ? exc++ : inc++);
+  const parts = [];
+  if (inc) parts.push(inc + "+");
+  if (exc) parts.push(exc + "-");
+  return base + " (" + parts.join(" ") + ") ▾";
+}
+
+function updatePackBtnLabels(){
+  packDiffBtn.textContent = packFilterBtnLabel("Difficulty", packState.diffFilters);
+  packCountBtn.textContent = packFilterBtnLabel("Obby Count", packState.countFilters);
+}
+
+document.getElementById("packClear").onclick = () => {
+  packState.diffFilters.clear();
+  packState.countFilters.clear();
+  [packDiffMenu, packCountMenu].forEach(menu => {
+    menu.querySelectorAll("label").forEach(label => {
+      label.classList.remove("state-include", "state-exclude");
+      const sw = label.querySelector(".tristate");
+      if (sw) sw.classList.remove("state-include", "state-exclude");
+    });
+  });
+  updatePackBtnLabels();
+  renderPackList();
+};
+
+document.getElementById("packSort").onchange = e => { packState.sort = e.target.value; renderPackList(); };
+document.getElementById("packSearch").oninput = e => { packState.search = e.target.value.trim().toLowerCase(); renderPackList(); };
+
+const packDirBtn = document.getElementById("packDir");
+packDirBtn.onclick = () => {
+  packState.dir = packState.dir === "asc" ? "desc" : "asc";
+  packDirBtn.textContent = packState.dir === "asc" ? "▲ Low → High" : "▼ High → Low";
+  renderPackList();
+};
+
+function packDiffKey(pack){
+  if (pack.hardestDifficultyValue == null) return pack.towers.length ? UNKNOWN : null;
+  const i = Math.floor(pack.hardestDifficultyValue);
+  if (i < 0 || i >= DIFFS.length) return null;
+  return i;
+}
+
+function packCountKey(pack){
+  const n = pack.obbyCount;
+  const bucket = PACK_COUNT_BUCKETS.find(b => b.test(n));
+  return bucket ? bucket.key : null;
+}
+
+function getFilteredPacksNoSearch(){
+  let arr = packState.packs.slice();
+
+  if (packState.diffFilters.size) {
+    const { include, exclude } = splitFilters(packState.diffFilters);
+    arr = arr.filter(p => {
+      const key = packDiffKey(p);
+      if (key != null && exclude.has(key)) return false;
+      if (!include.size) return true;
+      return key != null && include.has(key);
+    });
+  }
+
+  if (packState.countFilters.size) {
+    const { include, exclude } = splitFilters(packState.countFilters);
+    arr = arr.filter(p => {
+      const key = packCountKey(p);
+      if (key != null && exclude.has(key)) return false;
+      if (!include.size) return true;
+      return key != null && include.has(key);
+    });
+  }
+
+  return arr;
+}
+
+function getFilteredPacks(){
+  let arr = getFilteredPacksNoSearch();
+  if (packState.search) {
+    arr = arr.filter(p => p.name.toLowerCase().includes(packState.search));
+  }
+  return arr;
+}
+
+function packSortValue(p){
+  if (packState.sort === "count") return p.obbyCount;
+  if (packState.sort === "name") return p.name.toLowerCase();
+  return p.hardestDifficultyValue == null ? -Infinity : p.hardestDifficultyValue;
+}
+
+function sortPacks(arr){
+  arr.sort((a, b) => {
+    let r;
+    if (packState.sort === "name") {
+      const va = packSortValue(a), vb = packSortValue(b);
+      r = va < vb ? -1 : va > vb ? 1 : 0;
+    } else {
+      r = packSortValue(a) - packSortValue(b);
+    }
+    return packState.dir === "desc" ? -r : r;
+  });
+  return arr;
+}
+
+let globalPackRankByPack = new Map();
+let globalPackRankSortKey = null;
+
+function ensureGlobalPackRanks(){
+  const key = packState.sort + "|" + packState.dir;
+  if (globalPackRankSortKey === key && globalPackRankByPack.size === packState.packs.length) return;
+  const allRanked = sortPacks(packState.packs.slice());
+  globalPackRankByPack = new Map();
+  allRanked.forEach((p, idx) => globalPackRankByPack.set(p, idx + 1));
+  globalPackRankSortKey = key;
+}
+
+function formatPackDifficulty(pack){
+  if (pack.hardestDifficultyValue == null) {
+    return { text: pack.towers.length ? "Unknown" : "N/A", color: "#888" };
+  }
+  const i = Math.floor(pack.hardestDifficultyValue);
+  if (i < 0 || i >= DIFFS.length) return { text: String(pack.hardestDifficultyValue), color: "#888" };
+  return { text: DIFFS[i], color: COLORS[i] };
+}
+
+function renderPackList(){
+  ensureGlobalPackRanks();
+
+  const filteredNoSearch = getFilteredPacksNoSearch();
+  const bySortWithinFilters = sortPacks(filteredNoSearch.slice());
+
+  let arr = bySortWithinFilters;
+  if (packState.search) {
+    arr = bySortWithinFilters.filter(p => p.name.toLowerCase().includes(packState.search));
+  }
+
+  const countEl = document.getElementById("packListCount");
+  if (countEl) {
+    countEl.textContent = packState.search
+      ? `(${arr.length} of ${bySortWithinFilters.length})`
+      : `(${bySortWithinFilters.length})`;
+  }
+
+  packListEl.innerHTML = "";
+  if (!arr.length) { packListEl.innerHTML = '<div class="muted">There is no pack based on the selected filters</div>'; return; }
+
+  arr.forEach((p) => {
+    const fd = formatPackDifficulty(p);
+    const row = document.createElement("div");
+    row.className = "row" + (packState.selected === p ? " sel" : "");
+    row.innerHTML = `<span class="n">#${globalPackRankByPack.get(p)}</span><span class="name">${esc(p.name)}</span><span class="d" style="color:${fd.color}">${esc(fd.text)}</span>`;
+    row.onclick = () => { packState.selected = p; renderPackList(); renderPackInfo(p); };
+    packListEl.appendChild(row);
+  });
+}
+
+function renderPackInfo(pack){
+  if (!pack) { packInfoEl.innerHTML = '<div class="muted">Select a pack to view details</div>'; return; }
+
+  const fd = formatPackDifficulty(pack);
+
+  const towerRows = pack.towers.map((name, idx) => {
+    const t = packState.towerByName.get(name.toLowerCase());
+    const rowFd = t ? formatDifficulty(t) : { text: "N/A", color: "#888" };
+    return `<div class="pack-tower-row">
+      <span class="pn">#${idx + 1}</span>
+      <span class="pname" data-tower="${esc(name)}">${esc(name)}</span>
+      <span class="pd" style="color:${rowFd.color}">${esc(rowFd.text)}</span>
+    </div>`;
+  }).join("");
+
+  const missingHtml = pack.missingTowers && pack.missingTowers.length
+    ? `<div class="pack-missing">Not found in the obby list: ${pack.missingTowers.map(esc).join(", ")}</div>`
+    : "";
+
+  packInfoEl.innerHTML = `
+    <div class="t">${esc(pack.name)}</div>
+    <div class="kv">
+      <span>Name</span><b>${esc(pack.name)}</b>
+      <span>Difficulty</span><b style="color:${fd.color}">${esc(fd.text)}</b>
+      <span>Obby Count</span><b>${pack.obbyCount}</b>
+    </div>
+    <div class="pack-tower-list">${towerRows}</div>
+    ${missingHtml}
+  `;
+
+  packInfoEl.querySelectorAll(".pname[data-tower]").forEach(el => {
+    el.onclick = () => {
+      const name = el.getAttribute("data-tower");
+      const t = packState.towerByName.get(name.toLowerCase());
+      if (!t) return;
+      switchToTab("towers");
+      state.selected = t;
+      renderList();
+      renderInfo(t);
+      const row = listEl.querySelector(".row.sel");
+      if (row) row.scrollIntoView({ block: "nearest" });
+    };
+  });
+}
+
+function loadPacksFromData(rawPacks){
+  packState.packs = rawPacks || [];
+  packState.towerByName = new Map();
+  state.towers.forEach(t => {
+    packState.towerByName.set(t.name.toLowerCase(), t);
+    if (t.altName) packState.towerByName.set(t.altName.toLowerCase(), t);
+  });
+  updatePackBtnLabels();
+  renderPackList();
+}

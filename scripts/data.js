@@ -25,7 +25,10 @@ async function loadTowers() {
     buildAuthorMenu();
     buildGameMenu();
     renderList();
+    if (typeof loadPacksFromData === "function") loadPacksFromData(data.packs || []);
   } catch (e) {
     listEl.innerHTML = '<div class="muted">Failed to load the list, please try again later</div>';
+    const packListEl = document.getElementById("packList");
+    if (packListEl) packListEl.innerHTML = '<div class="muted">Failed to load the list, please try again later</div>';
   }
 }

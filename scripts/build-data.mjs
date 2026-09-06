@@ -3,7 +3,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const SHEET_ID = "1kgdrqZLb7jtTXm7bjwIjjmE415aXnEpiF3XfsZ8oQfM";
-const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=0`;
+const GVIZ_URL = (gid) => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${gid}`;
+const PACKS_GID = "815863793";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT_PATH = path.join(__dirname, "..", "data", "data.json");
@@ -88,11 +89,72 @@ function parseDifficultyCell(cell, typeHint) {
   return n == null ? null : n;
 }
 
-async function main() {
-  const res = await fetch(GVIZ_URL);
-  if (!res.ok) throw new Error("Google Sheets responded " + res.status);
+function tierToVirtualDifficulty(tierNum, subtierName) {
+  const idx = TIER_SUBTIER_NAMES.indexOf(subtierName);
+  const frac = idx < 0 ? 0 : idx / (TIER_SUBTIER_NAMES.length - 1);
+  return tierNum + frac;
+}
+function jumpToVirtualDifficulty(jumpNum) { return jumpNum; }
+
+function sortValueOfTower(t) {
+  const nt = normType(t.tier);
+  const d = t.difficulty;
+  if (d == null) return -Infinity;
+  if (d === UNKNOWN) return -Infinity + 1;
+  if (d != null && typeof d === "object" && d.textOnly) return d.index - 0.001;
+  if (d != null && typeof d === "object" && d.tierSubtier) return tierToVirtualDifficulty(Math.floor(d.tierNum), d.subtierName);
+
+  if (TIER_TYPES.concat(["jump"]).includes(nt)) {
+    if (nt === "jump") return jumpToVirtualDifficulty(d);
+    return d;
+  }
+  return d;
+}
+
+function sortValueByName(nameOrList, towerByName) {
+  const t = towerByName.get(nameKey(nameOrList));
+  return t ? sortValueOfTower(t) : -Infinity;
+}
+
+async function fetchSheet(gid) {
+  const res = await fetch(GVIZ_URL(gid));
+  if (!res.ok) throw new Error("Google Sheets responded " + res.status + " for gid " + gid);
   const raw = await res.text();
-  const json = JSON.parse(raw.slice(raw.indexOf("(") + 1, raw.lastIndexOf(")")));
+  return JSON.parse(raw.slice(raw.indexOf("(") + 1, raw.lastIndexOf(")")));
+}
+
+function nameKey(s) {
+  return String(s || "").trim().toLowerCase();
+}
+
+function parsePacksSheet(json) {
+  const rows = json.table?.rows || [];
+  const packs = [];
+
+  for (const [rowIdx, row] of rows.entries()) {
+    const c = row.c || [];
+    if (!c.length) continue;
+
+    const packName = cellText(c[0]);
+    if (!packName) continue;
+
+    if (rowIdx === 0 && /^pack(\s*name)?$/i.test(packName)) continue;
+
+    const towerNames = [];
+    for (let i = 1; i < c.length; i++) {
+      const v = cellText(c[i]);
+      if (v) towerNames.push(v);
+    }
+    if (!towerNames.length) continue;
+
+    packs.push({ packName, towerNames });
+  }
+
+  return packs;
+}
+
+async function main() {
+  const json = await fetchSheet(0);
 
   const cols = json.table.cols.map(c => (c.label || "").toLowerCase().trim());
 
@@ -165,8 +227,55 @@ async function main() {
     });
   }
 
+  const towerByName = new Map();
+  towers.forEach(t => {
+    towerByName.set(nameKey(t.name), t);
+    if (t.altName) {
+      const k = nameKey(t.altName);
+      if (!towerByName.has(k)) towerByName.set(k, t);
+    }
+  });
+
+  let packs = [];
+  try {
+    const packsJson = await fetchSheet(PACKS_GID);
+    const rawPacks = parsePacksSheet(packsJson);
+
+    packs = rawPacks.map(({ packName, towerNames }) => {
+      const resolved = [];
+      const missing = [];
+      towerNames.forEach(n => {
+        const t = towerByName.get(nameKey(n));
+        if (t) resolved.push(t.name);
+        else missing.push(n);
+      });
+
+      resolved.sort((a, b) => sortValueByName(b, towerByName) - sortValueByName(a, towerByName));
+
+      const diffValues = resolved
+        .map(n => sortValueByName(n, towerByName))
+        .filter(v => v != null && v !== -Infinity);
+      const hardestValue = diffValues.length ? Math.max(...diffValues) : null;
+      const hardestTowerName = hardestValue == null
+        ? null
+        : resolved.find(n => sortValueByName(n, towerByName) === hardestValue) || null;
+
+      return {
+        name: packName,
+        towers: resolved,
+        missingTowers: missing,
+        obbyCount: resolved.length,
+        hardestTowerName,
+        hardestDifficultyValue: hardestValue
+      };
+    });
+  } catch (err) {
+    console.warn("Skipping packs: " + err.message);
+  }
+
   const output = {
     towers,
+    packs,
     allTags: Array.from(tagSet),
     allTypes: Array.from(typeSet).sort((a, b) => a.localeCompare(b)),
     fetchedAt: new Date().toISOString()
@@ -174,7 +283,7 @@ async function main() {
 
   await mkdir(path.dirname(OUT_PATH), { recursive: true });
   await writeFile(OUT_PATH, JSON.stringify(output), "utf8");
-  console.log(`Wrote ${towers.length} towers to ${OUT_PATH}`);
+  console.log(`Wrote ${towers.length} towers and ${packs.length} packs to ${OUT_PATH}`);
 }
 
 main().catch(err => {

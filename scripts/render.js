@@ -72,18 +72,12 @@ function sortValue(t){
   return d;
 }
 
-// Splits a tri-state filter Map into include/exclude key sets.
 function splitFilters(map){
   const include = new Set(), exclude = new Set();
   map.forEach((v, k) => (v === "exclude" ? exclude : include).add(k));
   return { include, exclude };
 }
 
-// Applies all active non-search filters (difficulty, tags, type, tier,
-// authors, location) to state.towers and returns the resulting array,
-// without sorting and without applying the search text filter.
-// Kept separate from search so a tower's rank number can be computed
-// against this filtered-but-unsearched set (see renderList).
 function getFilteredTowersNoSearch() {
   let arr = state.towers.slice();
 
@@ -169,10 +163,17 @@ function getFilteredTowersNoSearch() {
   return arr;
 }
 
+function matchesSearch(t, q) {
+  if (!q) return true;
+  if (t.name && t.name.toLowerCase().includes(q)) return true;
+  if (t.altName && t.altName.toLowerCase().includes(q)) return true;
+  return false;
+}
+
 function getFilteredTowers() {
   let arr = getFilteredTowersNoSearch();
   if (state.search) {
-    arr = arr.filter(t => t.name.toLowerCase().includes(state.search));
+    arr = arr.filter(t => matchesSearch(t, state.search));
   }
   return arr;
 }
@@ -197,21 +198,34 @@ function sortTowers(arr){
   return arr;
 }
 
-function renderList() {
-  const ranked = sortTowers(getFilteredTowersNoSearch());
-  const rankByTower = new Map();
-  ranked.forEach((t, idx) => rankByTower.set(t, idx + 1));
+let globalRankByTower = new Map();
+let globalRankSortKey = null;
 
-  let arr = ranked;
+function ensureGlobalRanks() {
+  const key = state.sort + "|" + state.dir;
+  if (globalRankSortKey === key && globalRankByTower.size === state.towers.length) return;
+  const allRanked = sortTowers(state.towers.slice());
+  globalRankByTower = new Map();
+  allRanked.forEach((t, idx) => globalRankByTower.set(t, idx + 1));
+  globalRankSortKey = key;
+}
+
+function renderList() {
+  ensureGlobalRanks();
+
+  const filteredNoSearch = getFilteredTowersNoSearch();
+  const bySortWithinFilters = sortTowers(filteredNoSearch.slice());
+
+  let arr = bySortWithinFilters;
   if (state.search) {
-    arr = ranked.filter(t => t.name.toLowerCase().includes(state.search));
+    arr = bySortWithinFilters.filter(t => matchesSearch(t, state.search));
   }
 
   const countEl = document.getElementById("listCount");
   if (countEl) {
     countEl.textContent = state.search
-      ? `(${arr.length} of ${ranked.length})`
-      : `(${ranked.length})`;
+      ? `(${arr.length} of ${bySortWithinFilters.length})`
+      : `(${bySortWithinFilters.length})`;
   }
 
   listEl.innerHTML = "";
@@ -221,7 +235,7 @@ function renderList() {
     const fd = formatDifficulty(t);
     const row = document.createElement("div");
     row.className = "row" + (state.selected === t ? " sel" : "");
-    row.innerHTML = `<span class="n">#${rankByTower.get(t)}</span><span class="name">${esc(t.name)}</span><span class="d" style="color:${fd.color}">${esc(fd.text)}</span>`;
+    row.innerHTML = `<span class="n">#${globalRankByTower.get(t)}</span><span class="name">${esc(t.name)}</span><span class="d" style="color:${fd.color}">${esc(fd.text)}</span>`;
     row.onclick = () => { state.selected = t; renderList(); renderInfo(t); };
     listEl.appendChild(row);
   });

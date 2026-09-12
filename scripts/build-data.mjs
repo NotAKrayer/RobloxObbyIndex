@@ -5,6 +5,43 @@ import { fileURLToPath } from "node:url";
 const SHEET_ID = "1kgdrqZLb7jtTXm7bjwIjjmE415aXnEpiF3XfsZ8oQfM";
 const GVIZ_URL = (gid) => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${gid}`;
 const PACKS_GID = "815863793";
+const PLAYERS_GID = "1367978855";
+
+// XP for completing a tower/jump at a given effective (virtual) difficulty value.
+// Anchored so an 8.00 obby/jump-scale difficulty = 10xp, growing smoothly (not
+// in sharp jumps) for anything harder - naturally covering tier13-25 obbies and
+// jump 5.00-9.00 too, since those all resolve to the same virtual difficulty
+// scale used elsewhere on the site (tierToVirtualDifficulty / jumpToVirtualDifficulty).
+const XP_BASE_DIFFICULTY = 8.00;
+const XP_BASE_AMOUNT = 10;
+const XP_GROWTH_RATE = 1.15; // per 1.0 of effective difficulty above the base
+
+function xpForDifficulty(effectiveDiff) {
+  if (effectiveDiff == null || isNaN(effectiveDiff)) return 0;
+  const raw = XP_BASE_AMOUNT * Math.pow(XP_GROWTH_RATE, effectiveDiff - XP_BASE_DIFFICULTY);
+  return Math.max(0, Math.round(raw * 100) / 100);
+}
+
+// Total xp required to have fully completed levels [1..n]; level N needs
+// progressively more xp than level N-1 (smooth curve, not linear/flat).
+function xpThresholdForLevel(n) {
+  if (n <= 0) return 0;
+  return Math.round(50 * Math.pow(n, 1.5));
+}
+
+function levelForTotalXp(totalXp) {
+  if (!totalXp || totalXp <= 0) return { level: 0, currentLevelXp: 0, xpIntoLevel: 0, xpForNextLevel: xpThresholdForLevel(1) };
+  let level = 0;
+  while (xpThresholdForLevel(level + 1) <= totalXp) level++;
+  const floorXp = xpThresholdForLevel(level);
+  const nextXp = xpThresholdForLevel(level + 1);
+  return {
+    level,
+    currentLevelXp: floorXp,
+    xpIntoLevel: Math.round((totalXp - floorXp) * 100) / 100,
+    xpForNextLevel: Math.round((nextXp - floorXp) * 100) / 100
+  };
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT_PATH = path.join(__dirname, "..", "data", "data.json");
@@ -116,6 +153,136 @@ function sortValueByName(nameOrList, towerByName) {
   return t ? sortValueOfTower(t) : -Infinity;
 }
 
+// --- Real (display-accurate) virtual difficulty scale, mirroring
+// scripts/difficulty.js exactly (tier ranges + jump anchors), kept separate
+// from the simplified tierToVirtualDifficulty/jumpToVirtualDifficulty above
+// (those are only used for pack "hardest tower" sorting). This is the scale
+// used for xp, so an obby Tier 11 and a jump of comparable real difficulty
+// give comparable xp.
+function realSubtierFraction(subtierName) {
+  const i = TIER_SUBTIER_NAMES.indexOf(subtierName);
+  return (i < 0 ? 0 : i) / (TIER_SUBTIER_NAMES.length - 1);
+}
+
+const REAL_TIER_RANGES = [
+  [1, 0.00, 0.50], [2, 0.51, 1.00], [3, 1.01, 2.00], [4, 2.01, 3.00],
+  [5, 3.01, 3.50], [6, 3.51, 4.00], [7, 4.01, 5.00], [8, 5.01, 6.00],
+  [9, 6.01, 7.00], [10, 7.01, 8.00], [11, 8.01, 8.50], [12, 8.51, 9.00],
+  [13, 9.01, 9.50], [14, 9.51, 10.00], [15, 10.01, 11.00], [16, 11.01, 12.00],
+  [17, 12.01, 13.00], [18, 13.01, 13.50], [19, 13.51, 14.00], [20, 14.01, 14.30],
+  [21, 14.31, 14.60], [22, 14.61, 15.00], [23, 15.01, 15.30], [24, 15.31, 15.60],
+  [25, 15.61, 16.00]
+];
+const REAL_TIER_RANGE_MAP = new Map(REAL_TIER_RANGES.map(r => [r[0], r]));
+const REAL_LAST_TIER = REAL_TIER_RANGES[REAL_TIER_RANGES.length - 1];
+const REAL_LAST_TIER_SPAN = REAL_LAST_TIER[2] - REAL_LAST_TIER[1];
+const realExtrapolatedRangeCache = new Map();
+
+function realExtrapolatedTierRange(tierNum) {
+  if (realExtrapolatedRangeCache.has(tierNum)) return realExtrapolatedRangeCache.get(tierNum);
+  const prevMax = tierNum === REAL_LAST_TIER[0] + 1
+    ? REAL_LAST_TIER[2]
+    : realExtrapolatedTierRange(tierNum - 1).max;
+  const stepsAbove = tierNum - REAL_LAST_TIER[0];
+  const growth = 1 + stepsAbove * 0.08;
+  const span = REAL_LAST_TIER_SPAN * growth;
+  const min = prevMax + 0.01;
+  const max = min + span;
+  const range = { min, max };
+  realExtrapolatedRangeCache.set(tierNum, range);
+  return range;
+}
+
+function realGetTierRange(tierNum) {
+  if (REAL_TIER_RANGE_MAP.has(tierNum)) {
+    const [, min, max] = REAL_TIER_RANGE_MAP.get(tierNum);
+    return { min, max };
+  }
+  if (tierNum < 1) return { min: 0, max: REAL_TIER_RANGES[0][1] };
+  return realExtrapolatedTierRange(tierNum);
+}
+
+function realTierToVirtualDifficulty(tierNum, subtierName) {
+  const range = realGetTierRange(tierNum);
+  const frac = realSubtierFraction(subtierName);
+  return range.min + (range.max - range.min) * frac;
+}
+
+function diffIndexOf(name) { return DIFFS.indexOf(name); }
+function midOf(a, b) { return (diffIndexOf(a) + diffIndexOf(b)) / 2; }
+
+const REAL_JUMP_ANCHORS = [
+  [0, midOf("Easy", "Medium") - 0.15],
+  [1, midOf("Easy", "Medium") + 0.15],
+  [2, midOf("Hard", "Difficult")],
+  [3, midOf("Remorseless", "Insane")],
+  [4, midOf("Insane", "Extreme") - 0.15],
+  [5, midOf("Insane", "Extreme") + 0.15],
+  [6, midOf("Extreme", "Terrifying")],
+  [7, midOf("Catastrophic", "Horrific")],
+  [8, midOf("Horrific", "Unreal") - 0.20],
+  [9, midOf("Unreal", "Nil")]
+];
+const REAL_JUMP_ANCHOR_MAP = new Map(REAL_JUMP_ANCHORS);
+const REAL_UNREAL_IDX = diffIndexOf("Unreal");
+
+function realJumpToVirtualDifficulty(jumpNum) {
+  if (REAL_JUMP_ANCHOR_MAP.has(jumpNum)) return REAL_JUMP_ANCHOR_MAP.get(jumpNum);
+  if (jumpNum < 0) return REAL_JUMP_ANCHOR_MAP.get(0);
+  if (jumpNum >= 10) {
+    const stepsAbove = jumpNum - 9;
+    const growth = 1 + stepsAbove * 0.08;
+    return REAL_UNREAL_IDX + stepsAbove * growth * 0.5;
+  }
+  const known = REAL_JUMP_ANCHORS.map(a => a[0]).sort((a, b) => a - b);
+  let lower = null, upper = null;
+  for (const k of known) {
+    if (k <= jumpNum) lower = k;
+    if (k >= jumpNum && upper == null) upper = k;
+  }
+  if (lower == null) return REAL_JUMP_ANCHOR_MAP.get(upper);
+  if (upper == null) return REAL_JUMP_ANCHOR_MAP.get(lower);
+  if (lower === upper) return REAL_JUMP_ANCHOR_MAP.get(lower);
+  const lv = REAL_JUMP_ANCHOR_MAP.get(lower), uv = REAL_JUMP_ANCHOR_MAP.get(upper);
+  const t = (jumpNum - lower) / (upper - lower);
+  return lv + (uv - lv) * t;
+}
+
+// Plain-text difficulty label for a completion row on the leaderboard
+// (mirrors the gist of scripts/render.js formatDifficulty, text only - no
+// color, since this runs on the server side and is just stored as a string).
+function formatDifficultyForLeaderboard(t) {
+  const nt = normType(t.tier);
+  const d = t.difficulty;
+
+  if (d == null) return "N/A";
+  if (d === UNKNOWN) return "Unknown";
+  if (typeof d === "object" && d.textOnly) return DIFFS[d.index];
+  if (typeof d === "object" && d.tierSubtier) {
+    const prefix = d.subtierName ? d.subtierName + " " : "";
+    return prefix + "Tier " + d.tierNum;
+  }
+  if (nt === "jump") return String(d);
+  if (TIER_TYPES.includes(nt)) return "Tier " + Math.floor(d);
+  return String(d);
+}
+
+// Effective (virtual) difficulty value for a tower, on the same unified scale
+// used by the front-end (scripts/render.js effectiveDifficultyValue). Used
+// here to convert a completed tower into an xp amount.
+function effectiveDifficultyValue(t) {
+  const d = t.difficulty;
+  if (d == null) return null;
+  if (d === UNKNOWN) return null;
+  if (typeof d === "object" && d.textOnly) return d.index - 0.001;
+
+  const nt = normType(t.tier);
+  if (typeof d === "object" && d.tierSubtier) return realTierToVirtualDifficulty(Math.floor(d.tierNum), d.subtierName);
+  if (nt === "obby" || nt === "wallhop") return realTierToVirtualDifficulty(Math.floor(d));
+  if (nt === "jump") return realJumpToVirtualDifficulty(Math.floor(d));
+  return d;
+}
+
 async function fetchSheet(gid) {
   const res = await fetch(GVIZ_URL(gid));
   if (!res.ok) throw new Error("Google Sheets responded " + res.status + " for gid " + gid);
@@ -153,6 +320,33 @@ function parsePacksSheet(json) {
   return packs;
 }
 
+// Players sheet: col A = nickname, col B = nationality, col C = comma
+// separated list of completed tower ids ("1, 2, 3").
+function parsePlayersSheet(json) {
+  const rows = json.table?.rows || [];
+  const players = [];
+
+  for (const [rowIdx, row] of rows.entries()) {
+    const c = row.c || [];
+    if (!c.length) continue;
+
+    const nickname = cellText(c[0]);
+    if (!nickname) continue;
+
+    if (rowIdx === 0 && /^nick(name)?$/i.test(nickname)) continue;
+
+    const nationality = cellText(c[1]);
+    const idsRaw = cellText(c[2]);
+    const completedIds = idsRaw
+      ? idsRaw.split(",").map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n))
+      : [];
+
+    players.push({ nickname, nationality, completedIds });
+  }
+
+  return players;
+}
+
 async function main() {
   const json = await fetchSheet(0);
 
@@ -173,6 +367,8 @@ async function main() {
   const headerRow = json.table.rows[0]?.c || [];
   const headerTexts = headerRow.map(c => cellText(c).toLowerCase().trim());
   let iAlt = headerTexts.indexOf("alt name");
+  let iRanked = headerTexts.indexOf("ranked");
+  let iId = headerTexts.indexOf("id");
 
   if (iN < 0) iN = 0;
   if (iD < 0) iD = 1;
@@ -199,6 +395,13 @@ async function main() {
 
     const altName = iAlt >= 0 ? cellText(c[iAlt]) : "";
 
+    const rankedRaw = iRanked >= 0 ? cellText(c[iRanked]).toLowerCase() : "";
+    const ranked = rankedRaw === "yes" || rankedRaw === "true" || rankedRaw === "ranked";
+
+    const idRaw = iId >= 0 ? cellText(c[iId]) : "";
+    const idNum = idRaw ? parseInt(idRaw, 10) : null;
+    const towerId = idNum != null && !isNaN(idNum) ? idNum : null;
+
     const verifiedRaw = cellText(c[iVer]).toLowerCase();
     const verified = verifiedRaw === "verified" || verifiedRaw === "true" || verifiedRaw === "yes";
     const verifier = verified ? cellText(c[iVBy]) : "";
@@ -223,7 +426,9 @@ async function main() {
       location: cellText(c[iLoc]),
       link: cellText(c[iLink]),
       tags,
-      lengthRaw
+      lengthRaw,
+      ranked,
+      id: towerId
     });
   }
 
@@ -270,9 +475,81 @@ async function main() {
     console.warn("Skipping packs: " + err.message);
   }
 
+  const towerById = new Map();
+  towers.forEach(t => { if (t.id != null) towerById.set(t.id, t); });
+
+  let players = [];
+  const victorsByTowerId = new Map();
+  try {
+    const playersJson = await fetchSheet(PLAYERS_GID);
+    const rawPlayers = parsePlayersSheet(playersJson);
+
+    players = rawPlayers.map(p => {
+      const completions = [];
+      let totalXp = 0;
+      let hardestValue = null;
+      let hardestTowerName = null;
+
+      p.completedIds.forEach(id => {
+        const t = towerById.get(id);
+        if (!t) return;
+
+        victorsByTowerId.set(id, (victorsByTowerId.get(id) || 0) + 1);
+
+        const effDiff = effectiveDifficultyValue(t);
+        const xp = xpForDifficulty(effDiff);
+        totalXp += xp;
+
+        if (effDiff != null && (hardestValue == null || effDiff > hardestValue)) {
+          hardestValue = effDiff;
+          hardestTowerName = t.name;
+        }
+
+        completions.push({
+          towerId: id,
+          towerName: t.name,
+          difficultyText: formatDifficultyForLeaderboard(t),
+          xp
+        });
+      });
+
+      completions.sort((a, b) => {
+        const ta = towerById.get(a.towerId), tb = towerById.get(b.towerId);
+        const va = ta ? (effectiveDifficultyValue(ta) ?? -Infinity) : -Infinity;
+        const vb = tb ? (effectiveDifficultyValue(tb) ?? -Infinity) : -Infinity;
+        return vb - va;
+      });
+
+      totalXp = Math.round(totalXp * 100) / 100;
+      const levelInfo = levelForTotalXp(totalXp);
+
+      return {
+        nickname: p.nickname,
+        nationality: p.nationality,
+        totalXp,
+        level: levelInfo.level,
+        xpIntoLevel: levelInfo.xpIntoLevel,
+        xpForNextLevel: levelInfo.xpForNextLevel,
+        completionCount: completions.length,
+        hardestTowerName,
+        hardestDifficultyValue: hardestValue,
+        completions
+      };
+    });
+  } catch (err) {
+    console.warn("Skipping players/leaderboard: " + err.message);
+  }
+
+  // Attach victor counts to towers (how many players on the leaderboard have
+  // completed that tower), matched by the sheet "id" column.
+  towers.forEach(t => {
+    t.victors = t.id != null ? (victorsByTowerId.get(t.id) || 0) : 0;
+  });
+
   const output = {
     towers,
     packs,
+    players,
     allTags: Array.from(tagSet),
     allTypes: Array.from(typeSet).sort((a, b) => a.localeCompare(b)),
     fetchedAt: new Date().toISOString()
@@ -280,7 +557,7 @@ async function main() {
 
   await mkdir(path.dirname(OUT_PATH), { recursive: true });
   await writeFile(OUT_PATH, JSON.stringify(output), "utf8");
-  console.log(`Wrote ${towers.length} towers and ${packs.length} packs to ${OUT_PATH}`);
+  console.log(`Wrote ${towers.length} towers, ${packs.length} packs and ${players.length} players to ${OUT_PATH}`);
 }
 
 main().catch(err => {

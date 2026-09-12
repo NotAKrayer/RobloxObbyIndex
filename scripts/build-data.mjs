@@ -321,7 +321,9 @@ function parsePacksSheet(json) {
 }
 
 // Players sheet: col A = nickname, col B = nationality, col C = comma
-// separated list of completed tower ids ("1, 2, 3").
+// separated list of completed tower ids ("1, 2, 3"), col D (optional) =
+// semicolon separated list of compliments/comments left for that player
+// ("Great obby!; Super helpful; GG").
 function parsePlayersSheet(json) {
   const rows = json.table?.rows || [];
   const players = [];
@@ -341,7 +343,12 @@ function parsePlayersSheet(json) {
       ? idsRaw.split(",").map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n))
       : [];
 
-    players.push({ nickname, nationality, completedIds });
+    const complimentsRaw = cellText(c[3]);
+    const compliments = complimentsRaw
+      ? complimentsRaw.split(";").map(s => s.trim()).filter(Boolean)
+      : [];
+
+    players.push({ nickname, nationality, completedIds, compliments });
   }
 
   return players;
@@ -365,10 +372,29 @@ async function main() {
   let iLen  = cols.indexOf("length");
 
   const headerRow = json.table.rows[0]?.c || [];
-  const headerTexts = headerRow.map(c => cellText(c).toLowerCase().trim());
-  let iAlt = headerTexts.indexOf("alt name");
-  let iRanked = headerTexts.indexOf("ranked");
-  let iId = headerTexts.indexOf("id");
+  // Normalize header text for loose matching: lowercase, trim, collapse
+  // internal whitespace, and strip anything that isn't a letter/number so
+  // "Alt Name", "alt-name", "Alt  Name " etc. all match the same way.
+  const headerTextsLoose = headerRow.map(c => normLoose(cellText(c)));
+  const colsLoose = cols.map(c => normLoose(c));
+
+  function findHeaderIdx(...candidates) {
+    const wanted = candidates.map(normLoose);
+    for (const arr of [headerTextsLoose, colsLoose]) {
+      for (const w of wanted) {
+        const idx = arr.indexOf(w);
+        if (idx >= 0) return idx;
+      }
+    }
+    return -1;
+  }
+
+  let iAlt = findHeaderIdx("alt name", "altname", "alternate name");
+  let iRanked = findHeaderIdx("ranked", "rank", "is ranked");
+  let iId = findHeaderIdx("id", "tower id", "towerid", "#");
+
+  if (iId < 0) console.warn('Could not find an "ID" column in the towers sheet header - tower.id will be null for every row, which breaks victors/leaderboard matching.');
+  if (iRanked < 0) console.warn('Could not find a "Ranked" column in the towers sheet header - tower.ranked will be false for every row.');
 
   if (iN < 0) iN = 0;
   if (iD < 0) iD = 1;
@@ -395,11 +421,12 @@ async function main() {
 
     const altName = iAlt >= 0 ? cellText(c[iAlt]) : "";
 
-    const rankedRaw = iRanked >= 0 ? cellText(c[iRanked]).toLowerCase() : "";
-    const ranked = rankedRaw === "yes" || rankedRaw === "true" || rankedRaw === "ranked";
+    const rankedRaw = iRanked >= 0 ? cellText(c[iRanked]).trim().toLowerCase() : "";
+    const ranked = ["yes", "true", "ranked", "1", "y", "✓", "x"].includes(rankedRaw);
 
     const idRaw = iId >= 0 ? cellText(c[iId]) : "";
-    const idNum = idRaw ? parseInt(idRaw, 10) : null;
+    const idDigitsOnly = idRaw.replace(/[^0-9.\-]/g, "");
+    const idNum = idDigitsOnly ? parseInt(idDigitsOnly, 10) : null;
     const towerId = idNum != null && !isNaN(idNum) ? idNum : null;
 
     const verifiedRaw = cellText(c[iVer]).toLowerCase();
@@ -533,7 +560,8 @@ async function main() {
         completionCount: completions.length,
         hardestTowerName,
         hardestDifficultyValue: hardestValue,
-        completions
+        completions,
+        compliments: p.compliments || []
       };
     });
   } catch (err) {

@@ -7,23 +7,47 @@ const GVIZ_URL = (gid) => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gv
 const PACKS_GID = "815863793";
 const PLAYERS_GID = "1367978855";
 
-// XP for completing a tower/jump at a given effective (virtual) difficulty value.
-// Anchored so an 8.00 obby/jump-scale difficulty = 10xp, growing smoothly (not
-// in sharp jumps) for anything harder - naturally covering tier13-25 obbies and
-// jump 5.00-9.00 too, since those all resolve to the same virtual difficulty
-// scale used elsewhere on the site (tierToVirtualDifficulty / jumpToVirtualDifficulty).
-const XP_BASE_DIFFICULTY = 8.00;
-const XP_BASE_AMOUNT = 10;
-const XP_GROWTH_RATE = 1.15; // per 1.0 of effective difficulty above the base
+const XP_ANCHORS = [
+  [8, 100],
+  [9, 250],
+  [10, 500],
+  [11, 1000],
+  [12, 2000],
+  [13, 4000],
+  [14, 7000],
+  [15, 10000],
+  [16, 15000]
+];
+const XP_LAST_ANCHOR = XP_ANCHORS[XP_ANCHORS.length - 1];
+const XP_TAIL_GROWTH_RATE = 1.35;
 
 function xpForDifficulty(effectiveDiff) {
   if (effectiveDiff == null || isNaN(effectiveDiff)) return 0;
-  const raw = XP_BASE_AMOUNT * Math.pow(XP_GROWTH_RATE, effectiveDiff - XP_BASE_DIFFICULTY);
+
+  if (effectiveDiff <= XP_ANCHORS[0][0]) {
+    const raw = XP_ANCHORS[0][1] * Math.pow(1.15, effectiveDiff - XP_ANCHORS[0][0]);
+    return Math.max(0, Math.round(raw * 100) / 100);
+  }
+
+  if (effectiveDiff >= XP_LAST_ANCHOR[0]) {
+    const raw = XP_LAST_ANCHOR[1] * Math.pow(XP_TAIL_GROWTH_RATE, effectiveDiff - XP_LAST_ANCHOR[0]);
+    return Math.max(0, Math.round(raw * 100) / 100);
+  }
+
+  let lower = XP_ANCHORS[0], upper = XP_ANCHORS[XP_ANCHORS.length - 1];
+  for (let i = 0; i < XP_ANCHORS.length - 1; i++) {
+    if (effectiveDiff >= XP_ANCHORS[i][0] && effectiveDiff <= XP_ANCHORS[i + 1][0]) {
+      lower = XP_ANCHORS[i];
+      upper = XP_ANCHORS[i + 1];
+      break;
+    }
+  }
+  const [dLo, xLo] = lower, [dHi, xHi] = upper;
+  const t = (effectiveDiff - dLo) / (dHi - dLo);
+  const raw = xLo * Math.pow(xHi / xLo, t);
   return Math.max(0, Math.round(raw * 100) / 100);
 }
 
-// Total xp required to have fully completed levels [1..n]; level N needs
-// progressively more xp than level N-1 (smooth curve, not linear/flat).
 function xpThresholdForLevel(n) {
   if (n <= 0) return 0;
   return Math.round(50 * Math.pow(n, 1.5));
@@ -153,12 +177,6 @@ function sortValueByName(nameOrList, towerByName) {
   return t ? sortValueOfTower(t) : -Infinity;
 }
 
-// --- Real (display-accurate) virtual difficulty scale, mirroring
-// scripts/difficulty.js exactly (tier ranges + jump anchors), kept separate
-// from the simplified tierToVirtualDifficulty/jumpToVirtualDifficulty above
-// (those are only used for pack "hardest tower" sorting). This is the scale
-// used for xp, so an obby Tier 11 and a jump of comparable real difficulty
-// give comparable xp.
 function realSubtierFraction(subtierName) {
   const i = TIER_SUBTIER_NAMES.indexOf(subtierName);
   return (i < 0 ? 0 : i) / (TIER_SUBTIER_NAMES.length - 1);
@@ -248,9 +266,6 @@ function realJumpToVirtualDifficulty(jumpNum) {
   return lv + (uv - lv) * t;
 }
 
-// Plain-text difficulty label for a completion row on the leaderboard
-// (mirrors the gist of scripts/render.js formatDifficulty, text only - no
-// color, since this runs on the server side and is just stored as a string).
 function formatDifficultyForLeaderboard(t) {
   const nt = normType(t.tier);
   const d = t.difficulty;
@@ -267,9 +282,6 @@ function formatDifficultyForLeaderboard(t) {
   return String(d);
 }
 
-// Effective (virtual) difficulty value for a tower, on the same unified scale
-// used by the front-end (scripts/render.js effectiveDifficultyValue). Used
-// here to convert a completed tower into an xp amount.
 function effectiveDifficultyValue(t) {
   const d = t.difficulty;
   if (d == null) return null;
@@ -320,10 +332,6 @@ function parsePacksSheet(json) {
   return packs;
 }
 
-// Players sheet: col A = nickname, col B = nationality, col C = comma
-// separated list of completed tower ids ("1, 2, 3"), col D (optional) =
-// semicolon separated list of compliments/comments left for that player
-// ("Great obby!; Super helpful; GG").
 function parsePlayersSheet(json) {
   const rows = json.table?.rows || [];
   const players = [];
@@ -360,21 +368,11 @@ async function main() {
   const cols = json.table.cols.map(c => (c.label || "").toLowerCase().trim());
   const colsLoose = cols.map(c => normLoose(c));
 
-  // Google's gviz endpoint is inconsistent about where header names end up:
-  // - if it detects a header row, names land in table.cols[].label and
-  //   table.rows[0] is already the first real data row.
-  // - if it doesn't, table.cols[].label is empty/blank ("A","B",...) and the
-  //   real header text is sitting in table.rows[0] as plain cell values.
-  // Previously this always treated rows[0] as a header and skipped it
-  // unconditionally, which silently dropped the first data row (and its
-  // "id"/"ranked" values) whenever gviz used the first form. Detect which
-  // case we're in instead of assuming.
   const firstRow = json.table.rows[0]?.c || [];
   const firstRowTextsLoose = firstRow.map(c => normLoose(cellText(c)));
   const HEADER_HINTS = ["name", "difficulty", "ranked", "id", "verified", "type", "author"];
   const firstRowLooksLikeHeader = firstRowTextsLoose.some(t => HEADER_HINTS.includes(t));
 
-  // Use whichever of (cols labels, first row) actually contains header text.
   const headerTextsLoose = colsLoose.some(Boolean) ? colsLoose : (firstRowLooksLikeHeader ? firstRowTextsLoose : []);
 
   function findHeaderIdx(...candidates) {
@@ -420,10 +418,6 @@ async function main() {
   const tagSet = new Set(KNOWN_TAGS);
   const typeSet = new Set();
 
-  // Only skip row 0 if it was actually the header row we just parsed names
-  // from (i.e. cols[].label was empty and we fell back to reading rows[0]).
-  // If cols[].label already had the header text, rows[0] is real data and
-  // must NOT be skipped - that's the bug that dropped the first tower(s).
   const shouldSkipFirstDataRow = !colsLoose.some(Boolean) && firstRowLooksLikeHeader;
 
   for (const [rowIdx, row] of json.table.rows.entries()) {
@@ -582,8 +576,6 @@ async function main() {
     console.warn("Skipping players/leaderboard: " + err.message);
   }
 
-  // Attach victor counts to towers (how many players on the leaderboard have
-  // completed that tower), matched by the sheet "id" column.
   towers.forEach(t => {
     t.victors = t.id != null ? (victorsByTowerId.get(t.id) || 0) : 0;
   });

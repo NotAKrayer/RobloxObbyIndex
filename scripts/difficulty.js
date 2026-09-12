@@ -254,3 +254,142 @@ function jumpToVirtualDifficulty(jumpNum){
   const t = (jumpNum - lower) / (upper - lower);
   return lv + (uv - lv) * t;
 }
+
+const REAL_TIER_RANGES = [
+  [1, 0.00, 0.50], [2, 0.51, 1.00], [3, 1.01, 2.00], [4, 2.01, 3.00],
+  [5, 3.01, 3.50], [6, 3.51, 4.00], [7, 4.01, 5.00], [8, 5.01, 6.00],
+  [9, 6.01, 7.00], [10, 7.01, 8.00], [11, 8.01, 8.50], [12, 8.51, 9.00],
+  [13, 9.01, 9.50], [14, 9.51, 10.00], [15, 10.01, 11.00], [16, 11.01, 12.00],
+  [17, 12.01, 13.00], [18, 13.01, 13.50], [19, 13.51, 14.00], [20, 14.01, 14.30],
+  [21, 14.31, 14.60], [22, 14.61, 15.00], [23, 15.01, 15.30], [24, 15.31, 15.60],
+  [25, 15.61, 16.00]
+];
+const REAL_TIER_RANGE_MAP = new Map(REAL_TIER_RANGES.map(r => [r[0], r]));
+const REAL_LAST_TIER = REAL_TIER_RANGES[REAL_TIER_RANGES.length - 1];
+const REAL_LAST_TIER_SPAN = REAL_LAST_TIER[2] - REAL_LAST_TIER[1];
+const realExtrapolatedRangeCache = new Map();
+
+function realExtrapolatedTierRange(tierNum) {
+  if (realExtrapolatedRangeCache.has(tierNum)) return realExtrapolatedRangeCache.get(tierNum);
+  const prevMax = tierNum === REAL_LAST_TIER[0] + 1
+    ? REAL_LAST_TIER[2]
+    : realExtrapolatedTierRange(tierNum - 1).max;
+  const stepsAbove = tierNum - REAL_LAST_TIER[0];
+  const growth = 1 + stepsAbove * 0.08;
+  const span = REAL_LAST_TIER_SPAN * growth;
+  const min = prevMax + 0.01;
+  const max = min + span;
+  const range = { min, max };
+  realExtrapolatedRangeCache.set(tierNum, range);
+  return range;
+}
+
+function realGetTierRange(tierNum) {
+  if (REAL_TIER_RANGE_MAP.has(tierNum)) {
+    const [, min, max] = REAL_TIER_RANGE_MAP.get(tierNum);
+    return { min, max };
+  }
+  if (tierNum < 1) return { min: 0, max: REAL_TIER_RANGES[0][1] };
+  return realExtrapolatedTierRange(tierNum);
+}
+
+function realTierToVirtualDifficulty(tierNum, subtierName) {
+  const range = realGetTierRange(tierNum);
+  const frac = subtierFraction(subtierName);
+  return range.min + (range.max - range.min) * frac;
+}
+
+const REAL_JUMP_ANCHORS = [
+  [0, mid("Easy", "Medium") - 0.15],
+  [1, mid("Easy", "Medium") + 0.15],
+  [2, mid("Hard", "Difficult")],
+  [3, mid("Remorseless", "Insane")],
+  [4, mid("Insane", "Extreme") - 0.15],
+  [5, mid("Insane", "Extreme") + 0.15],
+  [6, mid("Extreme", "Terrifying")],
+  [7, mid("Catastrophic", "Horrific")],
+  [8, mid("Horrific", "Unreal") - 0.20],
+  [9, mid("Unreal", "Nil")]
+];
+const REAL_JUMP_ANCHOR_MAP = new Map(REAL_JUMP_ANCHORS);
+const REAL_UNREAL_IDX = diffIndex("Unreal");
+
+function realJumpToVirtualDifficulty(jumpNum) {
+  if (REAL_JUMP_ANCHOR_MAP.has(jumpNum)) return REAL_JUMP_ANCHOR_MAP.get(jumpNum);
+  if (jumpNum < 0) return REAL_JUMP_ANCHOR_MAP.get(0);
+  if (jumpNum >= 10) {
+    const stepsAbove = jumpNum - 9;
+    const growth = 1 + stepsAbove * 0.08;
+    return REAL_UNREAL_IDX + stepsAbove * growth * 0.5;
+  }
+  const known = REAL_JUMP_ANCHORS.map(a => a[0]).sort((a, b) => a - b);
+  let lower = null, upper = null;
+  for (const k of known) {
+    if (k <= jumpNum) lower = k;
+    if (k >= jumpNum && upper == null) upper = k;
+  }
+  if (lower == null) return REAL_JUMP_ANCHOR_MAP.get(upper);
+  if (upper == null) return REAL_JUMP_ANCHOR_MAP.get(lower);
+  if (lower === upper) return REAL_JUMP_ANCHOR_MAP.get(lower);
+  const lv = REAL_JUMP_ANCHOR_MAP.get(lower), uv = REAL_JUMP_ANCHOR_MAP.get(upper);
+  const t = (jumpNum - lower) / (upper - lower);
+  return lv + (uv - lv) * t;
+}
+
+function realEffectiveDifficultyValue(t) {
+  const d = t.difficulty;
+  if (d == null) return null;
+  if (isUnknownDiff(d)) return null;
+  if (isTextOnlyDiff(d)) return d.index - 0.001;
+
+  const nt = normType(t.tier);
+  if (isTierSubtierDiff(d)) return realTierToVirtualDifficulty(Math.floor(d.tierNum), d.subtierName);
+  if (nt === "obby" || nt === "wallhop") return realTierToVirtualDifficulty(Math.floor(d));
+  if (nt === "jump") return realJumpToVirtualDifficulty(Math.floor(d));
+  return d;
+}
+
+const XP_ANCHORS = [
+  [8, 100],
+  [9, 250],
+  [10, 500],
+  [11, 1000],
+  [12, 2000],
+  [13, 4000],
+  [14, 7000],
+  [15, 10000],
+  [16, 15000]
+];
+const XP_LAST_ANCHOR = XP_ANCHORS[XP_ANCHORS.length - 1];
+const XP_TAIL_GROWTH_RATE = 1.35;
+
+function xpForDifficulty(effectiveDiff) {
+  if (effectiveDiff == null || isNaN(effectiveDiff)) return 0;
+
+  if (effectiveDiff <= XP_ANCHORS[0][0]) {
+    const raw = XP_ANCHORS[0][1] * Math.pow(1.15, effectiveDiff - XP_ANCHORS[0][0]);
+    return Math.max(0, Math.round(raw * 100) / 100);
+  }
+
+  if (effectiveDiff >= XP_LAST_ANCHOR[0]) {
+    const raw = XP_LAST_ANCHOR[1] * Math.pow(XP_TAIL_GROWTH_RATE, effectiveDiff - XP_LAST_ANCHOR[0]);
+    return Math.max(0, Math.round(raw * 100) / 100);
+  }
+
+  let lower = XP_ANCHORS[0], upper = XP_ANCHORS[XP_ANCHORS.length - 1];
+  for (let i = 0; i < XP_ANCHORS.length - 1; i++) {
+    if (effectiveDiff >= XP_ANCHORS[i][0] && effectiveDiff <= XP_ANCHORS[i + 1][0]) {
+      lower = XP_ANCHORS[i];
+      upper = XP_ANCHORS[i + 1];
+      break;
+    }
+  }
+  const [dLo, xLo] = lower, [dHi, xHi] = upper;
+  const t = (effectiveDiff - dLo) / (dHi - dLo);
+  const raw = xLo * Math.pow(xHi / xLo, t);
+  return Math.max(0, Math.round(raw * 100) / 100);
+}
+
+function xpForTower(t){
+  return xpForDifficulty(realEffectiveDifficultyValue(t));
+}

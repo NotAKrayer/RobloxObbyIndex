@@ -19,15 +19,11 @@ const state = {
   minDiff: null
 };
 
-// Splits a tower's "author" field ("A, B, C") into a trimmed array of names.
 function splitAuthors(authorStr){
   if (!authorStr) return [];
   return authorStr.split(",").map(s => s.trim()).filter(Boolean);
 }
 
-// Splits a tower's "location" field ("EToH, Zone 2; Place") into individual
-// location entries, then reduces each to its base game name
-// (the part before the first comma, e.g. "EToH").
 function splitLocations(locationStr){
   if (!locationStr) return [];
   return locationStr.split(";").map(s => s.trim()).filter(Boolean);
@@ -42,9 +38,6 @@ function splitBaseGames(locationStr){
   return Array.from(set);
 }
 
-// Cycles a tri-state filter entry: none -> include -> exclude -> none.
-// `map` is one of the state filter Maps, `key` identifies the filter value.
-// Returns the resulting state ("include", "exclude", or null).
 function cycleFilterState(map, key){
   const cur = map.get(key);
   let next;
@@ -89,7 +82,6 @@ const gameDropdown = document.getElementById("gameDropdown");
 const gameList = document.getElementById("gameList");
 const gameSearchInput = document.getElementById("gameSearch");
 
-// Builds a tri-state filter option: click cycles none -> include -> exclude -> none.
 function buildTristateOption(container, map, key, labelText, onChange){
   const notify = onChange || (() => { updateBtnLabels(); renderList(); });
   const label = document.createElement("label");
@@ -136,8 +128,6 @@ function buildTypeMenu(){
   });
 }
 
-// Derives the sorted unique list of individual author names from all towers,
-// splitting each tower's comma-separated "author" field.
 function computeAllAuthors(){
   const set = new Set();
   state.towers.forEach(t => splitAuthors(t.author).forEach(a => set.add(a)));
@@ -172,7 +162,6 @@ authorSearchInput.addEventListener("input", e => {
   renderAuthorList();
 });
 
-// Derives the sorted unique list of base game names from all towers.
 function computeAllGames(){
   const set = new Set();
   state.towers.forEach(t => splitBaseGames(t.location).forEach(g => set.add(g)));

@@ -26,9 +26,12 @@ async function loadTowers() {
     buildGameMenu();
     renderList();
     if (typeof loadPacksFromData === "function") loadPacksFromData(data.packs || []);
+    if (typeof loadLeaderboardFromData === "function") loadLeaderboardFromData(data.players || []);
   } catch (e) {
     listEl.innerHTML = '<div class="muted">Failed to load the list, please try again later</div>';
     const packListEl = document.getElementById("packList");
     if (packListEl) packListEl.innerHTML = '<div class="muted">Failed to load the list, please try again later</div>';
+    const leaderboardListEl = document.getElementById("leaderboardList");
+    if (leaderboardListEl) leaderboardListEl.innerHTML = '<div class="muted">Failed to load the list, please try again later</div>';
   }
 }

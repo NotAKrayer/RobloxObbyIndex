@@ -243,9 +243,10 @@ function renderList() {
 
   arr.forEach((t) => {
     const fd = formatDifficulty(t);
+    const rankedIcon = t.ranked ? '<img src="assets/star-64.png" class="ranked-star" alt="Ranked" title="Ranked">' : "";
     const row = document.createElement("div");
     row.className = "row" + (state.selected === t ? " sel" : "");
-    row.innerHTML = `<span class="n">#${globalRankByTower.get(t)}</span><span class="name">${esc(t.name)}</span><span class="d" style="color:${fd.color}">${esc(fd.text)}</span>`;
+    row.innerHTML = `<span class="n">#${globalRankByTower.get(t)}</span><span class="name">${esc(t.name)}${rankedIcon}</span><span class="d" style="color:${fd.color}">${esc(fd.text)}</span>`;
     row.onclick = () => { state.selected = t; renderList(); renderInfo(t); };
     listEl.appendChild(row);
   });
@@ -295,12 +296,35 @@ function renderInfo(t) {
     ? packs.map(p => `<span class="tagchip" data-pack="${esc(p.name)}">${esc(p.name)}</span>`).join("")
     : "N/A";
 
+  const rankedRow = t.ranked
+    ? `<span>Ranked</span><b><img src="assets/star-64.png" class="ranked-star" alt="Ranked"> Ranked</b>`
+    : "";
+
+  const xp = t.ranked ? xpForTower(t) : null;
+  const xpRow = t.ranked
+    ? `<span>XP Reward</span><b>${xp ? xp + " xp" : "N/A"}</b>`
+    : "";
+
+  const victors = t.ranked && typeof victorsForTower === "function" ? victorsForTower(t) : [];
+  const victorsRows = victors.length
+    ? victors.map(v => `<div class="pack-tower-row">
+        <span class="pn">#${v.rank}</span>
+        <span class="pname" data-player="${esc(v.player.nickname)}">${esc(v.player.nickname)}</span>
+        <span class="pd">Level ${v.player.level}</span>
+      </div>`).join("")
+    : '<div class="muted">No victors yet</div>';
+
+  const victorsRow = t.ranked ? `<span>Victors (${victors.length})</span><b></b>` : "";
+  const victorsListHtml = t.ranked ? `<div class="pack-tower-list">${victorsRows}</div>` : "";
+
   infoEl.innerHTML = `
-    <div class="t">${esc(t.name)}</div>
+    <div class="t">${esc(t.name)}${t.ranked ? '<img src="assets/star-64.png" class="ranked-star" alt="Ranked">' : ""}</div>
     <div class="kv">
       <span>Name</span><b>${esc(t.name)}</b>
       ${altNameRow}
+      ${rankedRow}
       <span>Difficulty</span><b style="color:${fd.color}">${esc(fd.text)}</b>
+      ${xpRow}
       <span>Status</span><b>${statusText}</b>
       ${verifierRow}
       <span>Type</span><b>${t.tier ? esc(t.tier) : "N/A"}</b>
@@ -310,7 +334,23 @@ function renderInfo(t) {
       <span>Location(s)</span><b>${locHtml}</b>
       <span>Tags</span><b>${tagsHtml}</b>
       <span>Pack(s)</span><b>${packsHtml}</b>
-    </div>`;
+      ${victorsRow}
+    </div>
+    ${victorsListHtml}`;
+
+  infoEl.querySelectorAll(".pname[data-player]").forEach(el => {
+    el.onclick = () => {
+      const nickname = el.getAttribute("data-player");
+      const p = (leaderboardState.players || []).find(pp => pp.nickname === nickname);
+      if (!p) return;
+      switchToTab("leaderboard");
+      leaderboardState.selected = p;
+      renderLeaderboardList();
+      renderLeaderboardInfo(p);
+      const row = leaderboardListEl.querySelector(".row.sel");
+      if (row) row.scrollIntoView({ block: "nearest" });
+    };
+  });
 
   infoEl.querySelectorAll(".tagchip[data-pack]").forEach(el => {
     el.onclick = () => {

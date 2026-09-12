@@ -358,37 +358,45 @@ async function main() {
   const json = await fetchSheet(0);
 
   const cols = json.table.cols.map(c => (c.label || "").toLowerCase().trim());
-
-  let iN    = cols.indexOf("name");
-  let iD    = cols.indexOf("difficulty");
-  let iVer  = cols.indexOf("verified");
-  let iVBy  = cols.indexOf("verifier");
-  let iTier = cols.indexOf("type");
-  let iAuth = cols.indexOf("author");
-  let iQual = cols.indexOf("quality");
-  let iLoc  = cols.indexOf("location");
-  let iLink = cols.indexOf("link");
-  let iTags = cols.indexOf("tags");
-  let iLen  = cols.indexOf("length");
-
-  const headerRow = json.table.rows[0]?.c || [];
-  // Normalize header text for loose matching: lowercase, trim, collapse
-  // internal whitespace, and strip anything that isn't a letter/number so
-  // "Alt Name", "alt-name", "Alt  Name " etc. all match the same way.
-  const headerTextsLoose = headerRow.map(c => normLoose(cellText(c)));
   const colsLoose = cols.map(c => normLoose(c));
+
+  // Google's gviz endpoint is inconsistent about where header names end up:
+  // - if it detects a header row, names land in table.cols[].label and
+  //   table.rows[0] is already the first real data row.
+  // - if it doesn't, table.cols[].label is empty/blank ("A","B",...) and the
+  //   real header text is sitting in table.rows[0] as plain cell values.
+  // Previously this always treated rows[0] as a header and skipped it
+  // unconditionally, which silently dropped the first data row (and its
+  // "id"/"ranked" values) whenever gviz used the first form. Detect which
+  // case we're in instead of assuming.
+  const firstRow = json.table.rows[0]?.c || [];
+  const firstRowTextsLoose = firstRow.map(c => normLoose(cellText(c)));
+  const HEADER_HINTS = ["name", "difficulty", "ranked", "id", "verified", "type", "author"];
+  const firstRowLooksLikeHeader = firstRowTextsLoose.some(t => HEADER_HINTS.includes(t));
+
+  // Use whichever of (cols labels, first row) actually contains header text.
+  const headerTextsLoose = colsLoose.some(Boolean) ? colsLoose : (firstRowLooksLikeHeader ? firstRowTextsLoose : []);
 
   function findHeaderIdx(...candidates) {
     const wanted = candidates.map(normLoose);
-    for (const arr of [headerTextsLoose, colsLoose]) {
-      for (const w of wanted) {
-        const idx = arr.indexOf(w);
-        if (idx >= 0) return idx;
-      }
+    for (const w of wanted) {
+      const idx = headerTextsLoose.indexOf(w);
+      if (idx >= 0) return idx;
     }
     return -1;
   }
 
+  let iN    = findHeaderIdx("name");
+  let iD    = findHeaderIdx("difficulty");
+  let iVer  = findHeaderIdx("verified");
+  let iVBy  = findHeaderIdx("verifier");
+  let iTier = findHeaderIdx("type");
+  let iAuth = findHeaderIdx("author");
+  let iQual = findHeaderIdx("quality");
+  let iLoc  = findHeaderIdx("location");
+  let iLink = findHeaderIdx("link");
+  let iTags = findHeaderIdx("tags");
+  let iLen  = findHeaderIdx("length");
   let iAlt = findHeaderIdx("alt name", "altname", "alternate name");
   let iRanked = findHeaderIdx("ranked", "rank", "is ranked");
   let iId = findHeaderIdx("id", "tower id", "towerid", "#");
@@ -412,8 +420,14 @@ async function main() {
   const tagSet = new Set(KNOWN_TAGS);
   const typeSet = new Set();
 
+  // Only skip row 0 if it was actually the header row we just parsed names
+  // from (i.e. cols[].label was empty and we fell back to reading rows[0]).
+  // If cols[].label already had the header text, rows[0] is real data and
+  // must NOT be skipped - that's the bug that dropped the first tower(s).
+  const shouldSkipFirstDataRow = !colsLoose.some(Boolean) && firstRowLooksLikeHeader;
+
   for (const [rowIdx, row] of json.table.rows.entries()) {
-    if (rowIdx === 0) continue;
+    if (rowIdx === 0 && shouldSkipFirstDataRow) continue;
 
     const c = row.c || [];
     const name = cellText(c[iN]);

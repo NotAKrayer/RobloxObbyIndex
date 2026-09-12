@@ -101,6 +101,10 @@ main{display:grid;grid-template-columns:1fr 380px;gap:10px;padding:10px}
 .muted{padding:10px;color:var(--muted)}
 .tagchip{display:inline-block;background:var(--hover);border:1px solid var(--border2);border-radius:3px;padding:1px 6px;margin:1px 4px 1px 0;font-size:12px}
 
+.ranked-star{width:14px;height:14px;vertical-align:-2px;margin-right:4px;flex:none}
+.info .t .ranked-star{width:16px;height:16px;vertical-align:-2px;margin-left:6px;margin-right:0;}
+.row .name .ranked-star{margin-left:6px;margin-right:0;}
+
 .pack-tower-list{display:flex;flex-direction:column;gap:4px;margin-top:4px}
 .pack-tower-row{
   display:flex;justify-content:space-between;align-items:center;gap:10px;

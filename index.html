@@ -16,6 +16,7 @@
 <nav class="tabs" id="tabs">
   <button class="tab-btn active" id="tabTowersBtn" data-tab="towers">Obbies</button>
   <button class="tab-btn" id="tabPacksBtn" data-tab="packs">Packs</button>
+  <button class="tab-btn" id="tabLeaderboardBtn" data-tab="leaderboard">Leaderboard</button>
 </nav>
 
 <div class="filters" id="filters">
@@ -99,6 +100,18 @@
   <input type="text" id="packMinDiff" placeholder="Jump Difficulty ≥" style="min-width:140px">
 </div>
 
+<div class="filters" id="leaderboardFilters" style="display:none">
+  <span class="label">Sort by:</span>
+  <select id="leaderboardSort">
+    <option value="level">Level / XP</option>
+    <option value="completions">Completions</option>
+    <option value="hardest">Hardest Completion</option>
+  </select>
+
+  <button id="leaderboardDir">▼ High → Low</button>
+  <input type="text" id="leaderboardSearch" placeholder="Search nickname" style="min-width:160px">
+</div>
+
 <main id="towersMain">
   <section class="card">
     <h2>Obbies List <span class="count" id="listCount"></span></h2>
@@ -123,6 +136,18 @@
   </section>
 </main>
 
+<main id="leaderboardMain" style="display:none">
+  <section class="card">
+    <h2>Leaderboard <span class="count" id="leaderboardListCount"></span></h2>
+    <div class="list" id="leaderboardList"><div class="muted">Loading...</div></div>
+  </section>
+
+  <section class="card">
+    <h2>Player Info</h2>
+    <div class="info" id="leaderboardInfo"><div class="muted">Select a player to view details</div></div>
+  </section>
+</main>
+
 <div class="modal-overlay" id="siteInfoModalOverlay">
   <div class="modal">
     <div class="modal-head">
@@ -138,6 +163,7 @@
 <script src="scripts/data.js"></script>
 <script src="scripts/render.js"></script>
 <script src="scripts/packs.js"></script>
+<script src="scripts/leaderboard.js"></script>
 <script src="scripts/tabs.js"></script>
 </body>
 </html>

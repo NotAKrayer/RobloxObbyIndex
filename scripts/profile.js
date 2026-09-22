@@ -52,7 +52,7 @@ function renderProfileStatus() {
   }
   if (profileState.player) {
     profileStatusEl.classList.add("found");
-    profileStatusEl.textContent = `✓ ${profileState.player.nickname} · Level ${profileState.player.level}`;
+    profileStatusEl.textContent = `✓ ${profileState.player.nickname} · Level ${profileState.player.level} · ${profileState.player.completionCount} completions`;
   } else {
     profileStatusEl.classList.add("notfound");
     profileStatusEl.textContent = "Nickname not found on the leaderboard";

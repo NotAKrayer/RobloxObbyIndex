@@ -1,5 +1,3 @@
-// ---- state, sorting, and rendering for the Leaderboard tab ----
-
 const leaderboardState = {
   players: [],
   sort: "level",
@@ -121,6 +119,18 @@ function renderLeaderboardInfo(p) {
   const xpForNextLevel = p.xpForNextLevel != null ? p.xpForNextLevel : null;
   const xpProgressText = xpForNextLevel != null ? ` (${xpIntoLevel} / ${xpForNextLevel} xp)` : "";
 
+  const allPacks = (typeof packState !== "undefined" && packState.packs) || [];
+  const completedPacks = completedPacksForPlayer(p);
+  const totalBonusXp = completedPacks.reduce((acc, pk) => acc + packBonusXp(pk), 0);
+
+  const packRows = completedPacks.length
+    ? completedPacks.map(pk => `<div class="pack-tower-row">
+        <span class="done-check" title="Pack completed">✓</span>
+        <span class="pname" data-pack="${esc(pk.name)}">${esc(pk.name)}</span>
+        <span class="pd">${pk.obbyCount} obbies · +${packBonusXp(pk)} bonus xp</span>
+      </div>`).join("")
+    : '<div class="muted">No packs completed yet</div>';
+
   leaderboardInfoEl.innerHTML = `
     <div class="t">${esc(p.nickname)}</div>
     <div class="kv">
@@ -131,7 +141,12 @@ function renderLeaderboardInfo(p) {
       <span>Total XP</span><b>${p.totalXp}</b>
       <span>Completions</span><b>${p.completionCount}</b>
       <span>Hardest</span><b>${p.hardestTowerName ? esc(p.hardestTowerName) : "N/A"}</b>
+      <span>Packs Completed</span><b>${completedPacks.length} / ${allPacks.length}</b>
+      <span>Pack Bonus XP</span><b>+${totalBonusXp}</b>
     </div>
+    <div class="kv section"><span>Packs (${completedPacks.length})</span><b></b></div>
+    <div class="pack-tower-list">${packRows}</div>
+    <div class="kv section"><span>Obbies (${p.completions.length})</span><b></b></div>
     <div class="pack-tower-list">${completionRows || '<div class="muted">No completions yet</div>'}</div>
   `;
 
@@ -148,6 +163,20 @@ function renderLeaderboardInfo(p) {
       if (row) row.scrollIntoView({ block: "nearest" });
     };
   });
+
+  leaderboardInfoEl.querySelectorAll(".pname[data-pack]").forEach(el => {
+    el.onclick = () => {
+      const name = el.getAttribute("data-pack");
+      const pk = packState.packs.find(pp => pp.name === name);
+      if (!pk) return;
+      switchToTab("packs");
+      packState.selected = pk;
+      renderPackList();
+      renderPackInfo(pk);
+      const row = packListEl.querySelector(".row.sel");
+      if (row) row.scrollIntoView({ block: "nearest" });
+    };
+  });
 }
 
 function loadLeaderboardFromData(rawPlayers) {
@@ -155,20 +184,48 @@ function loadLeaderboardFromData(rawPlayers) {
   renderLeaderboardList();
   if (leaderboardState.selected) renderLeaderboardInfo(leaderboardState.selected);
   if (state.selected) renderInfo(state.selected);
+  if (typeof refreshProfile === "function") refreshProfile();
 }
 
-function victorsForTower(t){
-  if (!t || !leaderboardState.players.length) return [];
+function playerCompletedTower(p, t){
+  if (!p || !t) return false;
+  return (p.completions || []).some(c =>
+    (t.id != null && c.towerId === t.id) ||
+    (c.towerName && c.towerName.toLowerCase() === t.name.toLowerCase())
+  );
+}
+
+function playerCompletedPack(p, pack){
+  if (!p || !pack || !pack.towers.length || typeof packState === "undefined") return false;
+  return pack.towers.every(name => {
+    const t = packState.towerByName.get(name.toLowerCase());
+    return t ? playerCompletedTower(p, t) : false;
+  });
+}
+
+function completedPacksForPlayer(p){
+  if (!p || typeof packState === "undefined") return [];
+  return packState.packs.filter(pk => playerCompletedPack(p, pk));
+}
+
+function victorsWhere(completed){
+  if (!leaderboardState.players.length) return [];
   const ranked = sortLeaderboard(leaderboardState.players.slice().sort(
     (a, b) => leaderboardSortValue(b) - leaderboardSortValue(a)
   ));
   const out = [];
   ranked.forEach((p, idx) => {
-    const completed = (p.completions || []).some(c =>
-      (t.id != null && c.towerId === t.id) ||
-      (c.towerName && c.towerName.toLowerCase() === t.name.toLowerCase())
-    );
-    if (completed) out.push({ player: p, rank: idx + 1 });
+    if (completed(p)) out.push({ player: p, rank: idx + 1 });
   });
   return out;
+}
+
+function victorsForTower(t){
+  if (!t) return [];
+  return victorsWhere(p => playerCompletedTower(p, t));
+}
+
+function victorsForPack(pack){
+  if (!pack) return [];
+  return victorsWhere(p => playerCompletedPack(p, pack));
 }

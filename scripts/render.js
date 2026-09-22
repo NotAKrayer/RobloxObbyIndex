@@ -244,9 +244,12 @@ function renderList() {
   arr.forEach((t) => {
     const fd = formatDifficulty(t);
     const rankedIcon = t.ranked ? '<img src="assets/star-64.png" class="ranked-star" alt="Ranked" title="Ranked">' : "";
+    const done = typeof isTowerCompletedByProfile === "function" && isTowerCompletedByProfile(t);
+    const hasProfilePlayer = typeof profileState !== "undefined" && profileState.player;
+    const doneMark = done ? `<span class="done-check" title="Completed${hasProfilePlayer ? " by " + esc(profileState.player.nickname) : ""}">✓</span>` : "";
     const row = document.createElement("div");
     row.className = "row" + (state.selected === t ? " sel" : "");
-    row.innerHTML = `<span class="n">#${globalRankByTower.get(t)}</span><span class="name">${esc(t.name)}${rankedIcon}</span><span class="d" style="color:${fd.color}">${esc(fd.text)}</span>`;
+    row.innerHTML = `<span class="n">#${globalRankByTower.get(t)}</span><span class="name">${esc(t.name)}${rankedIcon}</span>${doneMark}<span class="d" style="color:${fd.color}">${esc(fd.text)}</span>`;
     row.onclick = () => { state.selected = t; renderList(); renderInfo(t); };
     listEl.appendChild(row);
   });
@@ -300,6 +303,9 @@ function renderInfo(t) {
     ? `<span>Ranked</span><b><img src="assets/star-64.png" class="ranked-star" alt="Ranked"> Ranked</b>`
     : "";
 
+  const infoDone = typeof isTowerCompletedByProfile === "function" && isTowerCompletedByProfile(t);
+  const infoDoneMark = infoDone ? `<span class="done-check" title="Completed">✓</span>` : "";
+
   const xp = t.ranked ? xpForTower(t) : null;
   const xpRow = t.ranked
     ? `<span>XP Reward</span><b>${xp ? xp + " xp" : "N/A"}</b>`
@@ -323,7 +329,7 @@ function renderInfo(t) {
       <span>Name</span><b>${esc(t.name)}</b>
       ${altNameRow}
       ${rankedRow}
-      <span>Difficulty</span><b style="color:${fd.color}">${esc(fd.text)}</b>
+      <span>Difficulty</span><b style="color:${fd.color}">${infoDoneMark}${esc(fd.text)}</b>
       ${xpRow}
       <span>Status</span><b>${statusText}</b>
       ${verifierRow}

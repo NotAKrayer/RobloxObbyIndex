@@ -1,5 +1,3 @@
-// ---- state, filters, sorting, rendering and other stuff for packs ----
-
 const packState = {
   packs: [],
   towerByName: new Map(),
@@ -238,9 +236,11 @@ function renderPackList(){
 
   arr.forEach((p) => {
     const fd = formatPackDifficulty(p);
+    const done = typeof isPackCompletedByProfile === "function" && isPackCompletedByProfile(p);
+    const doneMark = done ? `<span class="done-check" title="Pack completed">✓</span>` : "";
     const row = document.createElement("div");
     row.className = "row" + (packState.selected === p ? " sel" : "");
-    row.innerHTML = `<span class="n">#${globalPackRankByPack.get(p)}</span><span class="name">${esc(p.name)}</span><span class="d" style="color:${fd.color}">${esc(fd.text)}</span>`;
+    row.innerHTML = `<span class="n">#${globalPackRankByPack.get(p)}</span><span class="name">${esc(p.name)}</span>${doneMark}<span class="d" style="color:${fd.color}">${esc(fd.text)}</span>`;
     row.onclick = () => { packState.selected = p; renderPackList(); renderPackInfo(p); };
     packListEl.appendChild(row);
   });
@@ -254,22 +254,57 @@ function renderPackInfo(pack){
   const towerRows = pack.towers.map((name, idx) => {
     const t = packState.towerByName.get(name.toLowerCase());
     const rowFd = t ? formatDifficulty(t) : { text: "N/A", color: "#888" };
+    const rowDone = t && typeof isTowerCompletedByProfile === "function" && isTowerCompletedByProfile(t);
+    const rowDoneMark = rowDone ? `<span class="done-check" title="Completed">✓</span>` : "";
     return `<div class="pack-tower-row">
       <span class="pn">#${idx + 1}</span>
       <span class="pname" data-tower="${esc(name)}">${esc(name)}</span>
-      <span class="pd" style="color:${rowFd.color}">${esc(rowFd.text)}</span>
+      ${rowDoneMark}<span class="pd" style="color:${rowFd.color}">${esc(rowFd.text)}</span>
     </div>`;
   }).join("");
 
+  const packDone = typeof isPackCompletedByProfile === "function" && isPackCompletedByProfile(pack);
+  const packDoneMark = packDone ? `<span class="done-check" title="Pack completed">✓</span>` : "";
+  const hasProfile = typeof profileState !== "undefined" && profileState.player;
+  const bonusRow = hasProfile && typeof packBonusXp === "function"
+    ? `<span>Bonus XP</span><b>${packDone ? "+" + packBonusXp(pack) + " (earned)" : "+" + packBonusXp(pack) + " (if completed)"}</b>`
+    : "";
+
+  const victors = typeof victorsForPack === "function" ? victorsForPack(pack) : [];
+  const victorsRows = victors.length
+    ? victors.map(v => `<div class="pack-tower-row">
+        <span class="pn">#${v.rank}</span>
+        <span class="pname" data-player="${esc(v.player.nickname)}">${esc(v.player.nickname)}</span>
+        <span class="pd">Level ${v.player.level}</span>
+      </div>`).join("")
+    : '<div class="muted">No victors yet</div>';
+
   packInfoEl.innerHTML = `
-    <div class="t">${esc(pack.name)}</div>
+    <div class="t">${packDoneMark}${esc(pack.name)}</div>
     <div class="kv">
       <span>Name</span><b>${esc(pack.name)}</b>
       <span>Difficulty</span><b style="color:${fd.color}">${esc(fd.text)}</b>
       <span>Obby Count</span><b>${pack.obbyCount}</b>
+      ${bonusRow}
     </div>
     <div class="pack-tower-list">${towerRows}</div>
+    <div class="kv section"><span>Victors (${victors.length})</span><b></b></div>
+    <div class="pack-tower-list">${victorsRows}</div>
   `;
+
+  packInfoEl.querySelectorAll(".pname[data-player]").forEach(el => {
+    el.onclick = () => {
+      const nickname = el.getAttribute("data-player");
+      const p = (leaderboardState.players || []).find(pp => pp.nickname === nickname);
+      if (!p) return;
+      switchToTab("leaderboard");
+      leaderboardState.selected = p;
+      renderLeaderboardList();
+      renderLeaderboardInfo(p);
+      const row = leaderboardListEl.querySelector(".row.sel");
+      if (row) row.scrollIntoView({ block: "nearest" });
+    };
+  });
 
   packInfoEl.querySelectorAll(".pname[data-tower]").forEach(el => {
     el.onclick = () => {

@@ -13,6 +13,13 @@
   <button class="dropdown-btn" id="siteInfoBtn">Info</button>
 </header>
 
+<div class="profile-bar" id="profileBar">
+  <span class="label">Profile</span>
+  <input type="text" id="profileNickInput" placeholder="Enter your leaderboard nickname" style="min-width:240px">
+  <span class="profile-status" id="profileStatus"></span>
+  <button id="profileClearBtn" title="Clear profile">Clear</button>
+</div>
+
 <nav class="tabs" id="tabs">
   <button class="tab-btn active" id="tabTowersBtn" data-tab="towers">Obbies</button>
   <button class="tab-btn" id="tabPacksBtn" data-tab="packs">Packs</button>
@@ -164,6 +171,7 @@
 <script src="scripts/render.js"></script>
 <script src="scripts/packs.js"></script>
 <script src="scripts/leaderboard.js"></script>
+<script src="scripts/profile.js"></script>
 <script src="scripts/tabs.js"></script>
 </body>
 </html>

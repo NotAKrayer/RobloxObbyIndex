@@ -125,6 +125,18 @@ function packDiffKey(pack){
   return ci == null ? null : ci;
 }
 
+function packProgress(pack){
+  const total = pack.towers.length;
+  const player = typeof profileState !== "undefined" ? profileState.player : null;
+  if (!player) return { done: 0, total };
+  let done = 0;
+  pack.towers.forEach(name => {
+    const t = packState.towerByName.get(name.toLowerCase());
+    if (t && typeof playerCompletedTower === "function" && playerCompletedTower(player, t)) done++;
+  });
+  return { done, total };
+}
+
 function packCountKey(pack){
   const n = pack.obbyCount;
   const bucket = PACK_COUNT_BUCKETS.find(b => b.test(n));
@@ -238,9 +250,11 @@ function renderPackList(){
     const fd = formatPackDifficulty(p);
     const done = typeof isPackCompletedByProfile === "function" && isPackCompletedByProfile(p);
     const doneMark = done ? `<span class="done-check" title="Pack completed">✓</span>` : "";
+    const prog = packProgress(p);
+    const progressHtml = `<span class="pack-progress" title="Progress">${prog.done}/${prog.total}</span>`;
     const row = document.createElement("div");
     row.className = "row" + (packState.selected === p ? " sel" : "");
-    row.innerHTML = `<span class="n">#${globalPackRankByPack.get(p)}</span><span class="name">${esc(p.name)}</span>${doneMark}<span class="d" style="color:${fd.color}">${esc(fd.text)}</span>`;
+    row.innerHTML = `<span class="n">#${globalPackRankByPack.get(p)}</span><span class="name">${esc(p.name)}</span>${doneMark}${progressHtml}<span class="d" style="color:${fd.color}">${esc(fd.text)}</span>`;
     row.onclick = () => { packState.selected = p; renderPackList(); renderPackInfo(p); };
     packListEl.appendChild(row);
   });

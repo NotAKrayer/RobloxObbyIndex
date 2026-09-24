@@ -1,6 +1,7 @@
 const state = {
   towers: [],
   diffFilters: new Map(),
+  qualityFilters: new Map(),
   tagFilters: new Map(),
   typeFilters: new Map(),
   tierFilters: new Map(),
@@ -58,6 +59,10 @@ const diffMenu = document.getElementById("diffMenu");
 const diffBtn = document.getElementById("diffBtn");
 const diffDropdown = document.getElementById("diffDropdown");
 
+const qualityMenu = document.getElementById("qualityMenu");
+const qualityBtn = document.getElementById("qualityBtn");
+const qualityDropdown = document.getElementById("qualityDropdown");
+
 const tagMenu = document.getElementById("tagMenu");
 const tagBtn = document.getElementById("tagBtn");
 const tagDropdown = document.getElementById("tagDropdown");
@@ -112,6 +117,13 @@ DIFFS.forEach((d, i) => {
 
 (function addUnknownFilterOption(){
   buildTristateOption(diffMenu, state.diffFilters, UNKNOWN, "Unknown");
+})();
+
+QUALITIES.forEach(q => {
+  buildTristateOption(qualityMenu, state.qualityFilters, q, q);
+});
+(function addQualityUnknownFilterOption(){
+  buildTristateOption(qualityMenu, state.qualityFilters, "N/A", "N/A");
 })();
 
 function buildTagMenu(){
@@ -200,11 +212,11 @@ TIER_BANDS.forEach(band => {
   buildTristateOption(tierMenu, state.tierFilters, band, "Tier " + band);
 });
 
-[[diffBtn, diffMenu, diffDropdown],[tagBtn, tagMenu, tagDropdown],[typeBtn, typeMenu, typeDropdown],[tierBtn, tierMenu, tierDropdown],[authorBtn, authorMenu, authorDropdown],[gameBtn, gameMenu, gameDropdown]].forEach(([btn, menu, dd]) => {
+[[diffBtn, diffMenu, diffDropdown],[qualityBtn, qualityMenu, qualityDropdown],[tagBtn, tagMenu, tagDropdown],[typeBtn, typeMenu, typeDropdown],[tierBtn, tierMenu, tierDropdown],[authorBtn, authorMenu, authorDropdown],[gameBtn, gameMenu, gameDropdown]].forEach(([btn, menu, dd]) => {
   btn.onclick = (e) => {
     e.stopPropagation();
     const wasOpen = menu.classList.contains("open");
-    [diffMenu, tagMenu, typeMenu, tierMenu, authorMenu, gameMenu].forEach(m => m.classList.remove("open"));
+    [diffMenu, qualityMenu, tagMenu, typeMenu, tierMenu, authorMenu, gameMenu].forEach(m => m.classList.remove("open"));
     if (!wasOpen) {
       menu.classList.add("open");
       if (menu === authorMenu) authorSearchInput.focus();
@@ -214,6 +226,7 @@ TIER_BANDS.forEach(band => {
 });
 document.addEventListener("click", (e) => {
   if (!diffDropdown.contains(e.target)) diffMenu.classList.remove("open");
+  if (!qualityDropdown.contains(e.target)) qualityMenu.classList.remove("open");
   if (!tagDropdown.contains(e.target)) tagMenu.classList.remove("open");
   if (!typeDropdown.contains(e.target)) typeMenu.classList.remove("open");
   if (!tierDropdown.contains(e.target)) tierMenu.classList.remove("open");
@@ -233,6 +246,7 @@ function filterBtnLabel(base, map){
 
 function updateBtnLabels(){
   diffBtn.textContent = filterBtnLabel("Difficulty", state.diffFilters);
+  qualityBtn.textContent = filterBtnLabel("Quality", state.qualityFilters);
   tagBtn.textContent = filterBtnLabel("Tags", state.tagFilters);
   typeBtn.textContent = filterBtnLabel("Type", state.typeFilters);
   tierBtn.textContent = filterBtnLabel("Tier", state.tierFilters);
@@ -242,6 +256,7 @@ function updateBtnLabels(){
 
 document.getElementById("clear").onclick = () => {
   state.diffFilters.clear();
+  state.qualityFilters.clear();
   state.tagFilters.clear();
   state.typeFilters.clear();
   state.tierFilters.clear();
@@ -253,7 +268,7 @@ document.getElementById("clear").onclick = () => {
   authorSearchInput.value = "";
   gameSearchInput.value = "";
   if (minDiffInput) minDiffInput.value = "";
-  [diffMenu, tagMenu, typeMenu, tierMenu, authorMenu, gameMenu].forEach(menu => {
+  [diffMenu, qualityMenu, tagMenu, typeMenu, tierMenu, authorMenu, gameMenu].forEach(menu => {
     menu.querySelectorAll("label").forEach(label => {
       label.classList.remove("state-include", "state-exclude");
       const sw = label.querySelector(".tristate");

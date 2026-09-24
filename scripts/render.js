@@ -103,6 +103,16 @@ function getFilteredTowersNoSearch() {
     });
   }
 
+  if (state.qualityFilters.size) {
+    const { include, exclude } = splitFilters(state.qualityFilters);
+    arr = arr.filter(t => {
+      const q = t.quality || "N/A";
+      if (exclude.has(q)) return false;
+      if (!include.size) return true;
+      return include.has(q);
+    });
+  }
+
   if (state.tagFilters.size) {
     const { include, exclude } = splitFilters(state.tagFilters);
     arr = arr.filter(t => {

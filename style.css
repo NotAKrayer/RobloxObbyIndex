@@ -103,6 +103,7 @@ main{display:grid;grid-template-columns:1fr 380px;gap:10px;padding:10px}
 .row .n{width:40px;flex:none;color:var(--muted)}
 .row .name{flex:1;min-width:0;overflow-wrap:anywhere;word-break:break-word}
 .row .d{white-space:nowrap;flex:none}
+.row .pack-progress{white-space:nowrap;flex:none;color:var(--muted);font-size:12px;margin-right:2px}
 .info{padding:12px}
 .info .t{font-size:15px;font-weight:bold;margin-bottom:8px;overflow-wrap:anywhere;word-break:break-word}
 .kv{display:grid;grid-template-columns:110px 1fr;gap:4px 8px}

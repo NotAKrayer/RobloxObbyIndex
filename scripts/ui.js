@@ -311,7 +311,7 @@ document.getElementById("siteInfoBtn").onclick = () => {
       <span>Roblox Obby Index is a quick and convenient list of all obbies in Roblox, including towers, tiered obbies, jumps, and so on</span>
       <span>Inspiration: SCLP</span>
       <span>Owner and developer: KirillLegenda (KirillMatter)</span>
-      <span>Staff: ddlghl</span>
+      <span>Staff: ddlghl, Fizss45</span>
         <button onclick="window.open('https://discord.gg/D8PVcPR4Uj', '_blank')" class="discord-btn">Our Discord</button>
     </div>
   `

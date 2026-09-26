@@ -4,4 +4,4 @@ This list also includes impossible and unverified towers, provides a convenient 
 **The Placement of the obbies may not be accurate**  
 Inspiration: SCLP  
 Owner and developer: KirillLegenda (KirillMatter)  
-Staff: ddlghl  
+Staff: ddlghl, Fizss45  

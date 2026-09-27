@@ -140,9 +140,26 @@ main{display:grid;grid-template-columns:1fr 380px;gap:10px;padding:10px}
 }
 .modal-head{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg2)}
 .modal-head h3{margin:0;font-size:15px}
-.modal-body{padding:14px;white-space:pre-wrap}
+.modal-body{padding:14px}
 .modal-close{background:none;border:none;color:var(--text);font-size:18px;cursor:pointer;height:auto;padding:0 4px}
 .modal-close:hover{color:var(--accent)}
+
+.site-info{text-align:center}
+.site-info-logo{display:block;max-width:55%;margin:0 auto 14px;border-radius:8px}
+.site-info-title{font-size:26px;font-weight:bold;margin-bottom:12px}
+.site-info-title .c1{color:#4d8dff}
+.site-info-title .c2{color:#5ab0ff}
+.site-info-title .c3{color:#7fe7ff}
+.site-info-desc{margin:0 0 16px;color:var(--text);font-size:14px;line-height:1.5}
+.site-info-credits{
+  display:inline-flex;flex-direction:column;gap:6px;margin:0 auto 16px;
+  padding:10px 14px;background:var(--bg2);border:1px solid var(--border);
+  border-radius:6px;text-align:left;
+}
+.site-info-credits div{display:grid;grid-template-columns:140px 1fr;gap:10px;font-size:13px}
+.site-info-credits span{color:var(--muted)}
+.site-info-actions{display:flex;justify-content:center}
+
 .discord-btn {
   display: inline-flex;
   align-items: center;
@@ -150,7 +167,6 @@ main{display:grid;grid-template-columns:1fr 380px;gap:10px;padding:10px}
   background-color: #191a1d;
   color: #fff;
   padding: 10px 18px;
-  margin-top: 10px;
   border-radius: 6px;
   text-decoration: none;
 }

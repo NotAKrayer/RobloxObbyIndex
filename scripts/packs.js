@@ -190,6 +190,11 @@ function getFilteredPacks(){
 function packSortValue(p){
   if (packState.sort === "count") return p.obbyCount;
   if (packState.sort === "name") return p.name.toLowerCase();
+  if (packState.sort === "progress") {
+    const prog = packProgress(p);
+    return prog.total ? prog.done / prog.total : 0;
+  }
+  if (packState.sort === "bonusxp") return typeof packBonusXp === "function" ? packBonusXp(p) : 0;
   return p.hardestDifficultyValue == null ? -Infinity : p.hardestDifficultyValue;
 }
 
@@ -281,7 +286,7 @@ function renderPackInfo(pack){
   const packDoneMark = packDone ? `<span class="done-check" title="Pack completed">✓</span>` : "";
   const hasProfile = typeof profileState !== "undefined" && profileState.player;
   const bonusRow = hasProfile && typeof packBonusXp === "function"
-    ? `<span>Bonus XP</span><b>${packDone ? "+" + packBonusXp(pack) + " (earned)" : "+" + packBonusXp(pack) + " (if completed)"}</b>`
+    ? `<span>Bonus XP</span><b>${packDone ? "+" + packBonusXp(pack) + " (earned)" : "+" + packBonusXp(pack)}</b>`
     : "";
 
   const victors = typeof victorsForPack === "function" ? victorsForPack(pack) : [];

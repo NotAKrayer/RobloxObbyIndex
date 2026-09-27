@@ -301,20 +301,22 @@ const siteInfoModalOverlay = document.getElementById("siteInfoModalOverlay");
 const siteInfoModalBody = document.getElementById("siteInfoModalBody");
 document.getElementById("siteInfoBtn").onclick = () => {
   siteInfoModalBody.innerHTML = `
-    <div style="text-align:center;margin:0 -14px 14px -14px">
-      <img src="assets/logo.png" style="max-width:70%;border-radius:6px">
-    </div>
-    <div style="text-align:center;font-size:30px;font-weight:bold;padding-bottom:12px;margin: -100px 20px">
-      <span style="color:#0000FF">Roblox</span> <span style="color:#0389ff">Obby</span> <span style="color:#00ffff">Index</span>
-    </div>
-    <div style="text-align:center;font-size:15px;font-weight:bold; margin-bottom:5px">
-      <span>Roblox Obby Index is a quick and convenient list of all obbies in Roblox, including towers, tiered obbies, jumps, and so on</span>
-      <span>Inspiration: SCLP</span>
-      <span>Owner and developer: KirillLegenda (KirillMatter)</span>
-      <span>Staff: ddlghl, Fizss45</span>
+    <div class="site-info">
+      <img src="assets/logo.png" class="site-info-logo" alt="Roblox Obby Index logo">
+      <div class="site-info-title">
+        <span class="c1">Roblox</span> <span class="c2">Obby</span> <span class="c3">Index</span>
+      </div>
+      <p class="site-info-desc">Roblox Obby Index is a quick and convenient list of all obbies in Roblox, including towers, tiered obbies, jumps, and so on.</p>
+      <div class="site-info-credits">
+        <div><span>Inspiration</span><b>SCLP</b></div>
+        <div><span>Owner &amp; developer</span><b>KirillLegenda (KirillMatter)</b></div>
+        <div><span>Staff</span><b>ddlghl, Fizss45</b></div>
+      </div>
+      <div class="site-info-actions">
         <button onclick="window.open('https://discord.gg/D8PVcPR4Uj', '_blank')" class="discord-btn">Our Discord</button>
+      </div>
     </div>
-  `
+  `;
   siteInfoModalOverlay.classList.add("open");
 };
 document.getElementById("siteInfoModalClose").onclick = () => siteInfoModalOverlay.classList.remove("open");

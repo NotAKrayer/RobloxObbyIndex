@@ -17,6 +17,8 @@ const state = {
   allGames: [],
   authorSearch: "",
   gameSearch: "",
+  tagSearch: "",
+  typeSearch: "",
   minDiff: null
 };
 
@@ -66,10 +68,14 @@ const qualityDropdown = document.getElementById("qualityDropdown");
 const tagMenu = document.getElementById("tagMenu");
 const tagBtn = document.getElementById("tagBtn");
 const tagDropdown = document.getElementById("tagDropdown");
+const tagList = document.getElementById("tagList");
+const tagSearchInput = document.getElementById("tagSearch");
 
 const typeMenu = document.getElementById("typeMenu");
 const typeBtn = document.getElementById("typeBtn");
 const typeDropdown = document.getElementById("typeDropdown");
+const typeList = document.getElementById("typeList");
+const typeSearchInput = document.getElementById("typeSearch");
 
 const tierMenu = document.getElementById("tierMenu");
 const tierBtn = document.getElementById("tierBtn");
@@ -126,19 +132,59 @@ QUALITIES.forEach(q => {
   buildTristateOption(qualityMenu, state.qualityFilters, "N/A", "N/A");
 })();
 
+function renderTagList(){
+  tagList.innerHTML = "";
+  const q = state.tagSearch.toLowerCase();
+  const names = q ? state.allTags.filter(t => t.toLowerCase().includes(q)) : state.allTags;
+  if (!names.length) {
+    const empty = document.createElement("div");
+    empty.className = "muted";
+    empty.style.padding = "4px 6px";
+    empty.textContent = "No tags found";
+    tagList.appendChild(empty);
+    return;
+  }
+  names.forEach(tag => {
+    buildTristateOption(tagList, state.tagFilters, tag, tag);
+  });
+}
+
 function buildTagMenu(){
-  tagMenu.innerHTML = "";
-  state.allTags.forEach(tag => {
-    buildTristateOption(tagMenu, state.tagFilters, tag, tag);
+  renderTagList();
+}
+
+tagSearchInput.addEventListener("click", e => e.stopPropagation());
+tagSearchInput.addEventListener("input", e => {
+  state.tagSearch = e.target.value;
+  renderTagList();
+});
+
+function renderTypeList(){
+  typeList.innerHTML = "";
+  const q = state.typeSearch.toLowerCase();
+  const names = q ? state.allTypes.filter(t => t.toLowerCase().includes(q)) : state.allTypes;
+  if (!names.length) {
+    const empty = document.createElement("div");
+    empty.className = "muted";
+    empty.style.padding = "4px 6px";
+    empty.textContent = "No types found";
+    typeList.appendChild(empty);
+    return;
+  }
+  names.forEach(type => {
+    buildTristateOption(typeList, state.typeFilters, type, type);
   });
 }
 
 function buildTypeMenu(){
-  typeMenu.innerHTML = "";
-  state.allTypes.forEach(type => {
-    buildTristateOption(typeMenu, state.typeFilters, type, type);
-  });
+  renderTypeList();
 }
+
+typeSearchInput.addEventListener("click", e => e.stopPropagation());
+typeSearchInput.addEventListener("input", e => {
+  state.typeSearch = e.target.value;
+  renderTypeList();
+});
 
 function computeAllAuthors(){
   const set = new Set();
@@ -219,6 +265,8 @@ TIER_BANDS.forEach(band => {
     [diffMenu, qualityMenu, tagMenu, typeMenu, tierMenu, authorMenu, gameMenu].forEach(m => m.classList.remove("open"));
     if (!wasOpen) {
       menu.classList.add("open");
+      if (menu === tagMenu) tagSearchInput.focus();
+      if (menu === typeMenu) typeSearchInput.focus();
       if (menu === authorMenu) authorSearchInput.focus();
       if (menu === gameMenu) gameSearchInput.focus();
     }
@@ -264,9 +312,17 @@ document.getElementById("clear").onclick = () => {
   state.gameFilters.clear();
   state.authorSearch = "";
   state.gameSearch = "";
+  state.tagSearch = "";
+  state.typeSearch = "";
   state.minDiff = null;
   authorSearchInput.value = "";
   gameSearchInput.value = "";
+  tagSearchInput.value = "";
+  typeSearchInput.value = "";
+  renderTagList();
+  renderTypeList();
+  renderAuthorList();
+  renderGameList();
   if (minDiffInput) minDiffInput.value = "";
   [diffMenu, qualityMenu, tagMenu, typeMenu, tierMenu, authorMenu, gameMenu].forEach(menu => {
     menu.querySelectorAll("label").forEach(label => {

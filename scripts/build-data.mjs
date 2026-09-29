@@ -70,7 +70,7 @@ function levelForTotalXp(totalXp) {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT_PATH = path.join(__dirname, "..", "data", "data.json");
 
-const KNOWN_TAGS = ["Purist","Wallhop","Checkpoints","Speedrun","Jank","Camera Control","CO Based","Buff","Nerf","Old Version","Segment"];
+const KNOWN_TAGS = ["Purism","Wallhop","Checkpoints","Speedrun","Jank","Camera Control","CO-Based","Buff","Nerf","Old Version","Segment"];
 
 const DIFFS = ["Effortless","Easy","Medium","Hard","Difficult","Challenging","Intense",
 "Remorseless","Insane","Extreme","Terrifying","Catastrophic","Horrific","Unreal","Nil",

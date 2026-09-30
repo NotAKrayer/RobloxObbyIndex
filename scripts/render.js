@@ -28,7 +28,7 @@ function formatDifficulty(t){
   if (isUnknownDiff(d)) return { text: "Unknown", color: "#888" };
 
   if (isTextOnlyDiff(d)) {
-    const name = DIFFS[d.index];
+    const name = (d.subtierName ? d.subtierName + " " : "") + DIFFS[d.index];
     return { text: name, color: COLORS[d.index] };
   }
 
@@ -276,7 +276,7 @@ function renderInfo(t) {
     : "";
 
   const locNames = t.location ? t.location.split(";").map(s => s.trim()).filter(Boolean) : [];
-  const locLinks = t.link ? t.link.split(";").map(s => s.trim()).filter(Boolean) : [];
+  const locLinks = resolveTowerLinks(t);
 
   let locHtml;
   if (!locNames.length) {

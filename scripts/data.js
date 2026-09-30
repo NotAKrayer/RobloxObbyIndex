@@ -11,12 +11,34 @@ function cellNum(cell){
 
 function normType(t){ return (t || "").trim().toLowerCase(); }
 
+let GAMES_MAP = {};
+function setGamesMap(games){ GAMES_MAP = games || {}; }
+
+function resolveTowerLinks(t){
+  if (t._linkList) return t._linkList;
+  const locs = splitLocations(t.location);
+  const links = splitLocations(t.link);
+  let out;
+  if (links.length >= locs.length) {
+    out = links;
+  } else {
+    let j = 0;
+    out = locs.map(loc => {
+      const known = GAMES_MAP[baseGameName(loc).toLowerCase()];
+      return known || links[j++] || "";
+    });
+  }
+  t._linkList = out;
+  return out;
+}
+
 async function loadTowers() {
   try {
     const res = await fetch(DATA_URL, { cache: "no-store" });
     if (!res.ok) throw new Error(res.status);
     const data = await res.json();
 
+    setGamesMap(data.games);
     state.towers = data.towers;
     state.allTags = data.allTags;
     state.allTypes = data.allTypes;

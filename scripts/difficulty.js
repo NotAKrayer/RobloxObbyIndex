@@ -126,10 +126,8 @@ function parseDifficultyCell(cell, typeHint){
     return UNKNOWN;
   }
 
-  const nameIdx = DIFF_NAME_TO_INDEX.get(trimmed.toLowerCase());
-  if (nameIdx != null) {
-    return { textOnly: true, index: nameIdx };
-  }
+  const textDiff = parseTextDifficulty(trimmed);
+  if (textDiff) return textDiff;
 
   const nt = normType(typeHint);
   if (TIER_TYPES.includes(nt)) {
@@ -143,13 +141,33 @@ function parseDifficultyCell(cell, typeHint){
   return n == null ? null : n;
 }
 
+const SUBTIER_MID = { "Baseline":0, "Bottom":0.06, "Bottom-Low":0.17, "Low":0.28, "Low-Mid":0.39, "Mid":0.5, "Mid-High":0.61, "High":0.72, "High-Peak":0.83, "Peak":0.94 };
+
+function normDiffWords(s){ return String(s).toLowerCase().replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim(); }
+const DIFF_NAME_NORM = new Map(DIFFS.map((n, i) => [normDiffWords(n), i]));
+
+function parseTextDifficulty(raw){
+  const s = normDiffWords(raw);
+  if (!s) return null;
+  if (DIFF_NAME_NORM.has(s)) return { textOnly: true, index: DIFF_NAME_NORM.get(s) };
+  for (const name of TIER_SUBTIER_SORTED) {
+    const prefix = normDiffWords(name) + " ";
+    if (s.startsWith(prefix)) {
+      const idx = DIFF_NAME_NORM.get(s.slice(prefix.length));
+      if (idx != null) return { textOnly: true, index: idx, subtierName: name };
+    }
+  }
+  return null;
+}
+
+function textOnlyValue(d){
+  return d.subtierName ? d.index + (SUBTIER_MID[d.subtierName] ?? 0) : d.index - 0.001;
+}
+
 function isTextOnlyDiff(d){ return d != null && typeof d === "object" && d.textOnly; }
 function isUnknownDiff(d){ return d === UNKNOWN; }
 function isTierSubtierDiff(d){ return d != null && typeof d === "object" && d.tierSubtier; }
 
-function textOnlyValue(d){
-  return d.index - 0.001;
-}
 const TIER_RANGES = [
   [1,  0.00, 0.50],
   [2,  0.51, 1.00],
@@ -340,7 +358,7 @@ function realEffectiveDifficultyValue(t) {
   const d = t.difficulty;
   if (d == null) return null;
   if (isUnknownDiff(d)) return null;
-  if (isTextOnlyDiff(d)) return d.index - 0.001;
+  if (isTextOnlyDiff(d)) return textOnlyValue(d);
 
   const nt = normType(t.tier);
   if (isTierSubtierDiff(d)) return realTierToVirtualDifficulty(Math.floor(d.tierNum), d.subtierName);

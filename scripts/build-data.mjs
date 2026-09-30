@@ -6,6 +6,8 @@ const SHEET_ID = "1kgdrqZLb7jtTXm7bjwIjjmE415aXnEpiF3XfsZ8oQfM";
 const GVIZ_URL = (gid) => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${gid}`;
 const PACKS_GID = "815863793";
 const PLAYERS_GID = "1367978855";
+const GAMES_SHEET_NAME = "games";
+const GVIZ_URL_BY_NAME = (name) => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(name)}`;
 
 const XP_ANCHORS = [
   [8, 100],
@@ -97,6 +99,29 @@ function normLoose(s) { return String(s).toLowerCase().replace(/[^a-z0-9]/g, "")
 const TIER_SUBTIER_SORTED = TIER_SUBTIER_NAMES.slice().sort((a, b) => b.length - a.length);
 const TIER_SUBTIER_LOOKUP = TIER_SUBTIER_SORTED.map(name => ({ name, key: normLoose(name) }));
 
+const SUBTIER_MID = { "Baseline":0, "Bottom":0.06, "Bottom-Low":0.17, "Low":0.28, "Low-Mid":0.39, "Mid":0.5, "Mid-High":0.61, "High":0.72, "High-Peak":0.83, "Peak":0.94 };
+
+function normDiffWords(s){ return String(s).toLowerCase().replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim(); }
+const DIFF_NAME_NORM = new Map(DIFFS.map((n, i) => [normDiffWords(n), i]));
+
+function parseTextDifficulty(raw){
+  const s = normDiffWords(raw);
+  if (!s) return null;
+  if (DIFF_NAME_NORM.has(s)) return { textOnly: true, index: DIFF_NAME_NORM.get(s) };
+  for (const name of TIER_SUBTIER_SORTED) {
+    const prefix = normDiffWords(name) + " ";
+    if (s.startsWith(prefix)) {
+      const idx = DIFF_NAME_NORM.get(s.slice(prefix.length));
+      if (idx != null) return { textOnly: true, index: idx, subtierName: name };
+    }
+  }
+  return null;
+}
+
+function textOnlyValue(d){
+  return d.subtierName ? d.index + (SUBTIER_MID[d.subtierName] ?? 0) : d.index - 0.001;
+}
+
 function parseTierSubtierCell(raw) {
   if (!raw) return null;
   const loose = normLoose(raw);
@@ -133,10 +158,8 @@ function parseDifficultyCell(cell, typeHint) {
     return UNKNOWN;
   }
 
-  const nameIdx = DIFF_NAME_TO_INDEX.get(trimmed.toLowerCase());
-  if (nameIdx != null) {
-    return { textOnly: true, index: nameIdx };
-  }
+  const textDiff = parseTextDifficulty(trimmed);
+  if (textDiff) return textDiff;
 
   const nt = normType(typeHint);
   if (TIER_TYPES.includes(nt)) {
@@ -162,7 +185,7 @@ function sortValueOfTower(t) {
   const d = t.difficulty;
   if (d == null) return -Infinity;
   if (d === UNKNOWN) return -Infinity + 1;
-  if (d != null && typeof d === "object" && d.textOnly) return d.index - 0.001;
+  if (d != null && typeof d === "object" && d.textOnly) return textOnlyValue(d);
   if (d != null && typeof d === "object" && d.tierSubtier) return tierToVirtualDifficulty(Math.floor(d.tierNum), d.subtierName);
 
   if (TIER_TYPES.concat(["jump"]).includes(nt)) {
@@ -272,7 +295,7 @@ function formatDifficultyForLeaderboard(t) {
 
   if (d == null) return "N/A";
   if (d === UNKNOWN) return "Unknown";
-  if (typeof d === "object" && d.textOnly) return DIFFS[d.index];
+  if (typeof d === "object" && d.textOnly) return (d.subtierName ? d.subtierName + " " : "") + DIFFS[d.index];
   if (typeof d === "object" && d.tierSubtier) {
     const prefix = d.subtierName ? d.subtierName + " " : "";
     return prefix + "Tier " + d.tierNum;
@@ -286,7 +309,7 @@ function effectiveDifficultyValue(t) {
   const d = t.difficulty;
   if (d == null) return null;
   if (d === UNKNOWN) return null;
-  if (typeof d === "object" && d.textOnly) return d.index - 0.001;
+  if (typeof d === "object" && d.textOnly) return textOnlyValue(d);
 
   const nt = normType(t.tier);
   if (typeof d === "object" && d.tierSubtier) return realTierToVirtualDifficulty(Math.floor(d.tierNum), d.subtierName);
@@ -300,6 +323,46 @@ async function fetchSheet(gid) {
   if (!res.ok) throw new Error("Google Sheets responded " + res.status + " for gid " + gid);
   const raw = await res.text();
   return JSON.parse(raw.slice(raw.indexOf("(") + 1, raw.lastIndexOf(")")));
+}
+
+async function fetchSheetByName(name) {
+  const res = await fetch(GVIZ_URL_BY_NAME(name));
+  if (!res.ok) throw new Error("Google Sheets responded " + res.status + " for sheet " + name);
+  const raw = await res.text();
+  return JSON.parse(raw.slice(raw.indexOf("(") + 1, raw.lastIndexOf(")")));
+}
+
+function gameKey(s) {
+  return String(s || "").trim().toLowerCase();
+}
+
+function parseGamesSheet(json) {
+  const games = {};
+  for (const row of json.table?.rows || []) {
+    const c = row.c || [];
+    const abbr = gameKey(cellText(c[0]));
+    const url = cellText(c[2]);
+    if (!abbr || !/^https?:\/\//i.test(url)) continue;
+    if (!(abbr in games)) games[abbr] = url;
+  }
+  return games;
+}
+
+function splitList(s) {
+  return s ? s.split(";").map(x => x.trim()).filter(Boolean) : [];
+}
+
+function baseGameOf(loc) {
+  const i = loc.indexOf(",");
+  return (i === -1 ? loc : loc.slice(0, i)).trim();
+}
+
+function compactLinks(location, link, games) {
+  const locs = splitList(location);
+  const links = splitList(link);
+  if (!links.length || links.length !== locs.length) return links.join("; ");
+  const kept = links.filter((_, i) => !(gameKey(baseGameOf(locs[i])) in games));
+  return kept.join("; ");
 }
 
 function nameKey(s) {
@@ -363,6 +426,10 @@ function parsePlayersSheet(json) {
 }
 
 async function main() {
+  const gamesJson = await fetchSheetByName(GAMES_SHEET_NAME);
+  const games = parseGamesSheet(gamesJson);
+  if (!Object.keys(games).length) throw new Error('The "' + GAMES_SHEET_NAME + '" sheet returned no games, refusing to overwrite data.json');
+
   const json = await fetchSheet(0);
 
   const cols = json.table.cols.map(c => (c.label || "").toLowerCase().trim());
@@ -459,7 +526,7 @@ async function main() {
       author: cellText(c[iAuth]),
       quality: cellText(c[iQual]).toUpperCase(),
       location: cellText(c[iLoc]),
-      link: cellText(c[iLink]),
+      link: compactLinks(cellText(c[iLoc]), cellText(c[iLink]), games),
       tags,
       lengthRaw,
       ranked,
@@ -582,6 +649,7 @@ async function main() {
 
   const output = {
     towers,
+    games,
     packs,
     players,
     allTags: Array.from(tagSet),

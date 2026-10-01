@@ -19,7 +19,8 @@ const state = {
   gameSearch: "",
   tagSearch: "",
   typeSearch: "",
-  minDiff: null
+  minDiff: null,
+  hideAboveLiteral: true
 };
 
 function splitAuthors(authorStr){
@@ -388,3 +389,13 @@ document.getElementById("randomBtn").onclick = () => {
   const row = listEl.querySelector(".row.sel");
   if (row) row.scrollIntoView({ block: "nearest" });
 };
+
+const hideHardBtn = document.getElementById("hideHardBtn");
+if (hideHardBtn) {
+  hideHardBtn.onclick = () => {
+    state.hideAboveLiteral = !state.hideAboveLiteral;
+    hideHardBtn.classList.toggle("on", state.hideAboveLiteral);
+    hideHardBtn.setAttribute("aria-pressed", String(state.hideAboveLiteral));
+    if (typeof renderList === "function") renderList();
+  };
+}

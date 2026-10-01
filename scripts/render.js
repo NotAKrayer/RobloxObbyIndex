@@ -79,8 +79,22 @@ function splitFilters(map){
   return { include, exclude };
 }
 
+const LITERAL_IDX = DIFFS.indexOf("Literal");
+
+function isHarderThanLiteral(t){
+  const d = t.difficulty;
+  if (d == null || isUnknownDiff(d)) return false;
+  if (isTextOnlyDiff(d)) return d.index > LITERAL_IDX;
+  const v = effectiveDifficultyValue(t);
+  return typeof v === "number" && Math.floor(v) > LITERAL_IDX;
+}
+
+function visibleUniverse(){
+  return state.hideAboveLiteral ? state.towers.filter(t => !isHarderThanLiteral(t)) : state.towers;
+}
+
 function getFilteredTowersNoSearch() {
-  let arr = state.towers.slice();
+  let arr = visibleUniverse().slice();
 
   if (state.diffFilters.size) {
     const { include, exclude } = splitFilters(state.diffFilters);
@@ -222,9 +236,9 @@ let globalRankByTower = new Map();
 let globalRankSortKey = null;
 
 function ensureGlobalRanks() {
-  const key = state.sort + "|" + state.dir;
-  if (globalRankSortKey === key && globalRankByTower.size === state.towers.length) return;
-  const allRanked = sortTowers(state.towers.slice());
+  const key = state.sort + "|" + state.dir + "|" + state.hideAboveLiteral;
+  if (globalRankSortKey === key && globalRankByTower.size === visibleUniverse().length) return;
+  const allRanked = sortTowers(visibleUniverse().slice());
   globalRankByTower = new Map();
   allRanked.forEach((t, idx) => globalRankByTower.set(t, idx + 1));
   globalRankSortKey = key;

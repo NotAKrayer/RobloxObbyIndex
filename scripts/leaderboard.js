@@ -147,7 +147,7 @@ function renderLeaderboardInfo(p) {
     <div class="kv section"><span>Packs (${completedPacks.length})</span><b></b></div>
     <div class="pack-tower-list">${packRows}</div>
     <div class="kv section"><span>Obbies (${p.completions.length})</span><b></b></div>
-    <div class="pack-tower-list">${completionRows || '<div class="muted">No completions yet</div>'}</div>
+    <div class="pack-tower-list scroll-box">${completionRows || '<div class="muted">No completions yet</div>'}</div>
   `;
 
   leaderboardInfoEl.querySelectorAll(".pname[data-tower]").forEach(el => {

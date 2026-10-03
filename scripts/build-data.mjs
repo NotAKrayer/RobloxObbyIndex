@@ -173,25 +173,15 @@ function parseDifficultyCell(cell, typeHint) {
   return n == null ? null : n;
 }
 
-function tierToVirtualDifficulty(tierNum, subtierName) {
-  const idx = TIER_SUBTIER_NAMES.indexOf(subtierName);
-  const frac = idx < 0 ? 0 : idx / (TIER_SUBTIER_NAMES.length - 1);
-  return tierNum + frac;
-}
-function jumpToVirtualDifficulty(jumpNum) { return jumpNum; }
-
 function sortValueOfTower(t) {
   const nt = normType(t.tier);
   const d = t.difficulty;
   if (d == null) return -Infinity;
   if (d === UNKNOWN) return -Infinity + 1;
-  if (d != null && typeof d === "object" && d.textOnly) return textOnlyValue(d);
-  if (d != null && typeof d === "object" && d.tierSubtier) return tierToVirtualDifficulty(Math.floor(d.tierNum), d.subtierName);
-
-  if (TIER_TYPES.concat(["jump"]).includes(nt)) {
-    if (nt === "jump") return jumpToVirtualDifficulty(d);
-    return d;
-  }
+  if (typeof d === "object" && d.textOnly) return textOnlyValue(d);
+  if (typeof d === "object" && d.tierSubtier) return realTierToVirtualDifficulty(Math.floor(d.tierNum), d.subtierName);
+  if (nt === "jump") return realJumpToVirtualDifficulty(d);
+  if (TIER_TYPES.includes(nt)) return realTierToVirtualDifficulty(Math.floor(d));
   return d;
 }
 
@@ -206,12 +196,30 @@ function realSubtierFraction(subtierName) {
 }
 
 const REAL_TIER_RANGES = [
-  [1, 0.00, 0.50], [2, 0.51, 1.00], [3, 1.01, 2.00], [4, 2.01, 3.00],
-  [5, 3.01, 3.50], [6, 3.51, 4.00], [7, 4.01, 5.00], [8, 5.01, 6.00],
-  [9, 6.01, 7.00], [10, 7.01, 8.00], [11, 8.01, 8.50], [12, 8.51, 9.00],
-  [13, 9.01, 9.50], [14, 9.51, 10.00], [15, 10.01, 11.00], [16, 11.01, 12.00],
-  [17, 12.01, 13.00], [18, 13.01, 13.50], [19, 13.51, 14.00], [20, 14.01, 14.30],
-  [21, 14.31, 14.60], [22, 14.61, 15.00], [23, 15.01, 15.30], [24, 15.31, 15.60],
+  [1,  0.00, 0.50],
+  [2,  0.51, 1.00],
+  [3,  1.01, 2.00],
+  [4,  2.01, 3.00],
+  [5,  3.01, 3.50],
+  [6,  3.51, 4.00],
+  [7,  4.01, 5.00],
+  [8,  5.01, 6.00],
+  [9,  6.01, 7.00],
+  [10, 7.01, 8.00],
+  [11, 8.01, 8.50],
+  [12, 8.51, 9.00],
+  [13, 9.01, 9.50],
+  [14, 9.51, 10.81],
+  [15, 10.82, 11.48],
+  [16, 11.49, 12.27],
+  [17, 12.28, 13.35],
+  [18, 13.36, 14.00],
+  [19, 14.01, 14.38],
+  [20, 14.39, 14.61],
+  [21, 14.62, 14.84],
+  [22, 14.85, 15.14],
+  [23, 15.15, 15.37],
+  [24, 15.38, 15.60],
   [25, 15.61, 16.00]
 ];
 const REAL_TIER_RANGE_MAP = new Map(REAL_TIER_RANGES.map(r => [r[0], r]));
@@ -253,40 +261,39 @@ function diffIndexOf(name) { return DIFFS.indexOf(name); }
 function midOf(a, b) { return (diffIndexOf(a) + diffIndexOf(b)) / 2; }
 
 const REAL_JUMP_ANCHORS = [
-  [0, midOf("Easy", "Medium") - 0.15],
-  [1, midOf("Easy", "Medium") + 0.15],
-  [2, midOf("Hard", "Difficult")],
-  [3, midOf("Remorseless", "Insane")],
-  [4, midOf("Insane", "Extreme") - 0.15],
-  [5, midOf("Insane", "Extreme") + 0.15],
-  [6, midOf("Extreme", "Terrifying")],
-  [7, midOf("Catastrophic", "Horrific")],
-  [8, midOf("Horrific", "Unreal") - 0.20],
-  [9, midOf("Unreal", "Nil")]
+  [0, midOf("Easy","Medium") - 0.15],
+  [1, midOf("Easy","Medium") + 0.15],
+  [2, midOf("Hard","Difficult")],
+  [3, midOf("Remorseless","Insane")],
+  [4, midOf("Insane","Extreme") - 0.15],
+  [5, midOf("Insane","Extreme") + 0.15],
+  [6, midOf("Extreme","Terrifying")],
+  [7, 10.62],
+  [8, 11.12],
+  [8.66, 11.45],
+  [8.77, 11.59],
+  [8.80, 12.15],
+  [8.87, 13.46],
+  [9, 14.5]
 ];
-const REAL_JUMP_ANCHOR_MAP = new Map(REAL_JUMP_ANCHORS);
-const REAL_UNREAL_IDX = diffIndexOf("Unreal");
+
+function interpJumpAnchors(anchors, jumpNum){
+  const first = anchors[0], last = anchors[anchors.length - 1];
+  if (jumpNum <= first[0]) return first[1];
+  if (jumpNum >= last[0]) {
+    const stepsAbove = jumpNum - last[0];
+    const growth = 1 + stepsAbove * 0.08;
+    return last[1] + stepsAbove * growth * 0.5;
+  }
+  for (let i = 0; i < anchors.length - 1; i++) {
+    const [j0, v0] = anchors[i], [j1, v1] = anchors[i + 1];
+    if (jumpNum >= j0 && jumpNum <= j1) return v0 + (v1 - v0) * (jumpNum - j0) / (j1 - j0);
+  }
+  return last[1];
+}
 
 function realJumpToVirtualDifficulty(jumpNum) {
-  if (REAL_JUMP_ANCHOR_MAP.has(jumpNum)) return REAL_JUMP_ANCHOR_MAP.get(jumpNum);
-  if (jumpNum < 0) return REAL_JUMP_ANCHOR_MAP.get(0);
-  if (jumpNum >= 10) {
-    const stepsAbove = jumpNum - 9;
-    const growth = 1 + stepsAbove * 0.08;
-    return REAL_UNREAL_IDX + stepsAbove * growth * 0.5;
-  }
-  const known = REAL_JUMP_ANCHORS.map(a => a[0]).sort((a, b) => a - b);
-  let lower = null, upper = null;
-  for (const k of known) {
-    if (k <= jumpNum) lower = k;
-    if (k >= jumpNum && upper == null) upper = k;
-  }
-  if (lower == null) return REAL_JUMP_ANCHOR_MAP.get(upper);
-  if (upper == null) return REAL_JUMP_ANCHOR_MAP.get(lower);
-  if (lower === upper) return REAL_JUMP_ANCHOR_MAP.get(lower);
-  const lv = REAL_JUMP_ANCHOR_MAP.get(lower), uv = REAL_JUMP_ANCHOR_MAP.get(upper);
-  const t = (jumpNum - lower) / (upper - lower);
-  return lv + (uv - lv) * t;
+  return interpJumpAnchors(REAL_JUMP_ANCHORS, jumpNum);
 }
 
 function formatDifficultyForLeaderboard(t) {
@@ -314,7 +321,7 @@ function effectiveDifficultyValue(t) {
   const nt = normType(t.tier);
   if (typeof d === "object" && d.tierSubtier) return realTierToVirtualDifficulty(Math.floor(d.tierNum), d.subtierName);
   if (nt === "obby" || nt === "wallhop") return realTierToVirtualDifficulty(Math.floor(d));
-  if (nt === "jump") return realJumpToVirtualDifficulty(Math.floor(d));
+  if (nt === "jump") return realJumpToVirtualDifficulty(d);
   return d;
 }
 

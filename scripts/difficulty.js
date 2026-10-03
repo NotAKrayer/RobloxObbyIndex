@@ -182,11 +182,11 @@ const TIER_RANGES = [
   [11, 8.01, 8.50],
   [12, 8.51, 9.00],
   [13, 9.01, 9.50],
-  [14, 9.51, 10.00],
+  [14, 9.51, 10.81],
   [15, 10.82, 11.48],
-  [16, 11.49, 12.15],
-  [17, 12.40, 13.30],
-  [18, 13.40, 14.00],
+  [16, 11.49, 12.27],
+  [17, 12.28, 13.35],
+  [18, 13.36, 14.00],
   [19, 14.01, 14.38],
   [20, 14.39, 14.61],
   [21, 14.62, 14.84],
@@ -244,33 +244,32 @@ const JUMP_ANCHORS = [
   [4, mid("Insane","Extreme") - 0.15],
   [5, mid("Insane","Extreme") + 0.15],
   [6, mid("Extreme","Terrifying")],
-  [7, mid("Catastrophic","Horrific")],
-  [8, mid("Horrific","Unreal") - 0.20],
-  [9, mid("Unreal","Nil")]
+  [7, 10.62],
+  [8, 11.12],
+  [8.66, 11.45],
+  [8.77, 11.59],
+  [8.80, 12.15],
+  [8.87, 13.46],
+  [9, 14.5]
 ];
-const JUMP_ANCHOR_MAP = new Map(JUMP_ANCHORS);
-const UNREAL_IDX = diffIndex("Unreal");
+
+function interpJumpAnchors(anchors, jumpNum){
+  const first = anchors[0], last = anchors[anchors.length - 1];
+  if (jumpNum <= first[0]) return first[1];
+  if (jumpNum >= last[0]) {
+    const stepsAbove = jumpNum - last[0];
+    const growth = 1 + stepsAbove * 0.08;
+    return last[1] + stepsAbove * growth * 0.5;
+  }
+  for (let i = 0; i < anchors.length - 1; i++) {
+    const [j0, v0] = anchors[i], [j1, v1] = anchors[i + 1];
+    if (jumpNum >= j0 && jumpNum <= j1) return v0 + (v1 - v0) * (jumpNum - j0) / (j1 - j0);
+  }
+  return last[1];
+}
 
 function jumpToVirtualDifficulty(jumpNum){
-  if (JUMP_ANCHOR_MAP.has(jumpNum)) return JUMP_ANCHOR_MAP.get(jumpNum);
-  if (jumpNum < 0) return JUMP_ANCHOR_MAP.get(0);
-  if (jumpNum >= 10) {
-    const stepsAbove = jumpNum - 9;
-    const growth = 1 + stepsAbove * 0.08;
-    return UNREAL_IDX + stepsAbove * growth * 0.5;
-  }
-  const known = JUMP_ANCHORS.map(a => a[0]).sort((a,b) => a-b);
-  let lower = null, upper = null;
-  for (const k of known) {
-    if (k <= jumpNum) lower = k;
-    if (k >= jumpNum && upper == null) upper = k;
-  }
-  if (lower == null) return JUMP_ANCHOR_MAP.get(upper);
-  if (upper == null) return JUMP_ANCHOR_MAP.get(lower);
-  if (lower === upper) return JUMP_ANCHOR_MAP.get(lower);
-  const lv = JUMP_ANCHOR_MAP.get(lower), uv = JUMP_ANCHOR_MAP.get(upper);
-  const t = (jumpNum - lower) / (upper - lower);
-  return lv + (uv - lv) * t;
+  return interpJumpAnchors(JUMP_ANCHORS, jumpNum);
 }
 
 const REAL_TIER_RANGES = [
@@ -287,11 +286,11 @@ const REAL_TIER_RANGES = [
   [11, 8.01, 8.50],
   [12, 8.51, 9.00],
   [13, 9.01, 9.50],
-  [14, 9.51, 10.00],
+  [14, 9.51, 10.81],
   [15, 10.82, 11.48],
-  [16, 11.49, 12.15],
-  [17, 12.40, 13.30],
-  [18, 13.40, 14.00],
+  [16, 11.49, 12.27],
+  [17, 12.28, 13.35],
+  [18, 13.36, 14.00],
   [19, 14.01, 14.38],
   [20, 14.39, 14.61],
   [21, 14.62, 14.84],
@@ -335,41 +334,10 @@ function realTierToVirtualDifficulty(tierNum, subtierName) {
   return range.min + (range.max - range.min) * frac;
 }
 
-const REAL_JUMP_ANCHORS = [
-  [0, mid("Easy", "Medium") - 0.15],
-  [1, mid("Easy", "Medium") + 0.15],
-  [2, mid("Hard", "Difficult")],
-  [3, mid("Remorseless", "Insane")],
-  [4, mid("Insane", "Extreme") - 0.15],
-  [5, mid("Insane", "Extreme") + 0.15],
-  [6, mid("Extreme", "Terrifying")],
-  [7, mid("Catastrophic", "Horrific")],
-  [8, mid("Horrific", "Unreal") - 0.20],
-  [9, mid("Unreal", "Nil")]
-];
-const REAL_JUMP_ANCHOR_MAP = new Map(REAL_JUMP_ANCHORS);
-const REAL_UNREAL_IDX = diffIndex("Unreal");
+const REAL_JUMP_ANCHORS = JUMP_ANCHORS.map(a => a.slice());
 
 function realJumpToVirtualDifficulty(jumpNum) {
-  if (REAL_JUMP_ANCHOR_MAP.has(jumpNum)) return REAL_JUMP_ANCHOR_MAP.get(jumpNum);
-  if (jumpNum < 0) return REAL_JUMP_ANCHOR_MAP.get(0);
-  if (jumpNum >= 10) {
-    const stepsAbove = jumpNum - 9;
-    const growth = 1 + stepsAbove * 0.08;
-    return REAL_UNREAL_IDX + stepsAbove * growth * 0.5;
-  }
-  const known = REAL_JUMP_ANCHORS.map(a => a[0]).sort((a, b) => a - b);
-  let lower = null, upper = null;
-  for (const k of known) {
-    if (k <= jumpNum) lower = k;
-    if (k >= jumpNum && upper == null) upper = k;
-  }
-  if (lower == null) return REAL_JUMP_ANCHOR_MAP.get(upper);
-  if (upper == null) return REAL_JUMP_ANCHOR_MAP.get(lower);
-  if (lower === upper) return REAL_JUMP_ANCHOR_MAP.get(lower);
-  const lv = REAL_JUMP_ANCHOR_MAP.get(lower), uv = REAL_JUMP_ANCHOR_MAP.get(upper);
-  const t = (jumpNum - lower) / (upper - lower);
-  return lv + (uv - lv) * t;
+  return interpJumpAnchors(REAL_JUMP_ANCHORS, jumpNum);
 }
 
 function realEffectiveDifficultyValue(t) {
@@ -381,7 +349,7 @@ function realEffectiveDifficultyValue(t) {
   const nt = normType(t.tier);
   if (isTierSubtierDiff(d)) return realTierToVirtualDifficulty(Math.floor(d.tierNum), d.subtierName);
   if (nt === "obby" || nt === "wallhop") return realTierToVirtualDifficulty(Math.floor(d));
-  if (nt === "jump") return realJumpToVirtualDifficulty(Math.floor(d));
+  if (nt === "jump") return realJumpToVirtualDifficulty(d);
   return d;
 }
 

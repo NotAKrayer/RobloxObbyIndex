@@ -7,7 +7,7 @@ function effectiveDifficultyValue(t){
   const nt = normType(t.tier);
   if (isTierSubtierDiff(d)) return tierToVirtualDifficulty(Math.floor(d.tierNum), d.subtierName);
   if (nt === "obby" || nt === "wallhop") return tierToVirtualDifficulty(Math.floor(d));
-  if (nt === "jump") return jumpToVirtualDifficulty(Math.floor(d));
+  if (nt === "jump") return jumpToVirtualDifficulty(d);
   return d;
 }
 

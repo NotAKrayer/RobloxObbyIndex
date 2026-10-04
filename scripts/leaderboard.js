@@ -68,6 +68,16 @@ function leaderboardSummaryText(p) {
   return "Level " + p.level + " · " + p.totalXp + " xp";
 }
 
+function setLeaderboardUpdated(iso) {
+  const el = document.getElementById("leaderboardUpdated");
+  if (!el) return;
+  const d = iso ? new Date(iso) : null;
+  const text = d && !isNaN(d)
+    ? d.toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+    : "N/A";
+  el.textContent = "Last Time Updated: " + text;
+}
+
 function renderLeaderboardList() {
   ensureGlobalLeaderboardRanks();
 
@@ -86,7 +96,7 @@ function renderLeaderboardList() {
   arr.forEach((p) => {
     const row = document.createElement("div");
     row.className = "row" + (leaderboardState.selected === p ? " sel" : "");
-    row.innerHTML = `<span class="n">#${globalLeaderboardRankByPlayer.get(p)}</span><span class="name">${esc(p.nickname)}</span><span class="d">${esc(leaderboardSummaryText(p))}</span>`;
+    row.innerHTML = `<span class="n">#${globalLeaderboardRankByPlayer.get(p)}</span><span class="name">${styledNick(p.nickname, false)}</span><span class="d">${esc(leaderboardSummaryText(p))}</span>`;
     row.onclick = () => { leaderboardState.selected = p; renderLeaderboardList(); renderLeaderboardInfo(p); };
     leaderboardListEl.appendChild(row);
   });
@@ -132,9 +142,9 @@ function renderLeaderboardInfo(p) {
     : '<div class="muted">No packs completed yet</div>';
 
   leaderboardInfoEl.innerHTML = `
-    <div class="t">${esc(p.nickname)}</div>
+    <div class="t">${styledNick(p.nickname, true)}</div>
     <div class="kv">
-      <span>Nickname</span><b>${esc(p.nickname)}</b>
+      <span>Nickname</span><b>${styledNick(p.nickname, false)}</b>
       <span>Nationality</span><b>${p.nationality ? esc(p.nationality) : "N/A"}</b>
       <span>Rank</span><b>#${rankLevel}</b>
       <span>Level</span><b>${p.level}${esc(xpProgressText)}</b>
@@ -184,6 +194,7 @@ function loadLeaderboardFromData(rawPlayers) {
   renderLeaderboardList();
   if (leaderboardState.selected) renderLeaderboardInfo(leaderboardState.selected);
   if (state.selected) renderInfo(state.selected);
+  if (typeof refreshRoulette === "function") refreshRoulette();
   if (typeof refreshProfile === "function") refreshProfile();
 }
 

@@ -366,8 +366,8 @@ document.getElementById("siteInfoBtn").onclick = () => {
       <p class="site-info-desc">Roblox Obby Index is a quick and convenient list of all obbies in Roblox, including towers, tiered obbies, jumps, and so on.</p>
       <div class="site-info-credits">
         <div><span>Inspiration</span><b>SCLP</b></div>
-        <div><span>Owner &amp; developer</span><b>KirillLegenda (KirillMatter)</b></div>
-        <div><span>Staff</span><b>ddlghl, Fizss45</b></div>
+        <div><span>Owner &amp; developer</span><b class="role-owner">KirillLegenda (KirillMatter)</b></div>
+        <div><span>List Manager</span><b class="role-manager">ddlghl, Fizss45</b></div>
       </div>
       <div class="site-info-actions">
         <button onclick="window.open('https://discord.gg/D8PVcPR4Uj', '_blank')" class="discord-btn">Our Discord</button>
@@ -378,17 +378,6 @@ document.getElementById("siteInfoBtn").onclick = () => {
 };
 document.getElementById("siteInfoModalClose").onclick = () => siteInfoModalOverlay.classList.remove("open");
 siteInfoModalOverlay.addEventListener("click", (e) => { if (e.target === siteInfoModalOverlay) siteInfoModalOverlay.classList.remove("open"); });
-
-document.getElementById("randomBtn").onclick = () => {
-  const arr = getFilteredTowers();
-  if (!arr.length) return;
-  const pick = arr[Math.floor(Math.random() * arr.length)];
-  state.selected = pick;
-  renderList();
-  renderInfo(pick);
-  const row = listEl.querySelector(".row.sel");
-  if (row) row.scrollIntoView({ block: "nearest" });
-};
 
 const hideHardBtn = document.getElementById("hideHardBtn");
 if (hideHardBtn) {

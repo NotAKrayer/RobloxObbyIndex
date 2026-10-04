@@ -74,6 +74,7 @@ function refreshProfile() {
   if (typeof state !== "undefined" && state.selected && typeof renderInfo === "function") renderInfo(state.selected);
   if (typeof packState !== "undefined" && packState.packs && packState.packs.length && typeof renderPackList === "function") renderPackList();
   if (typeof packState !== "undefined" && packState.selected && typeof renderPackInfo === "function") renderPackInfo(packState.selected);
+  if (typeof refreshRoulette === "function") refreshRoulette();
 }
 
 if (profileNickInput) {

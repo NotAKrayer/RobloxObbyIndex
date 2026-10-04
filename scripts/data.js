@@ -47,6 +47,8 @@ async function loadTowers() {
     buildAuthorMenu();
     buildGameMenu();
     renderList();
+    if (typeof initRoulette === "function") initRoulette();
+    if (typeof setLeaderboardUpdated === "function") setLeaderboardUpdated(data.fetchedAt);
     if (typeof loadPacksFromData === "function") loadPacksFromData(data.packs || []);
     if (typeof loadLeaderboardFromData === "function") loadLeaderboardFromData(data.players || []);
   } catch (e) {

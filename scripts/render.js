@@ -279,8 +279,9 @@ function renderList() {
   });
 }
 
-function renderInfo(t) {
-  if (!t) { infoEl.innerHTML = '<div class="muted">Select a tower to view details</div>'; return; }
+function renderInfo(t, target) {
+  const el = target || infoEl;
+  if (!t) { el.innerHTML = '<div class="muted">Select a tower to view details</div>'; return; }
 
   const fd = formatDifficulty(t);
 
@@ -347,7 +348,7 @@ function renderInfo(t) {
   const victorsRow = t.ranked ? `<span>Victors (${victors.length})</span><b></b>` : "";
   const victorsListHtml = t.ranked ? `<div class="pack-tower-list">${victorsRows}</div>` : "";
 
-  infoEl.innerHTML = `
+  el.innerHTML = `
     <div class="t">${esc(t.name)}${t.ranked ? '<img src="assets/star-64.png" class="ranked-star" alt="Ranked">' : ""}</div>
     <div class="kv">
       <span>Name</span><b>${esc(t.name)}</b>
@@ -368,7 +369,7 @@ function renderInfo(t) {
     </div>
     ${victorsListHtml}`;
 
-  infoEl.querySelectorAll(".pname[data-player]").forEach(el => {
+  el.querySelectorAll(".pname[data-player]").forEach(el => {
     el.onclick = () => {
       const nickname = el.getAttribute("data-player");
       const p = (leaderboardState.players || []).find(pp => pp.nickname === nickname);
@@ -382,7 +383,7 @@ function renderInfo(t) {
     };
   });
 
-  infoEl.querySelectorAll(".tagchip[data-pack]").forEach(el => {
+  el.querySelectorAll(".tagchip[data-pack]").forEach(el => {
     el.onclick = () => {
       const name = el.getAttribute("data-pack");
       const p = packState.packs.find(pp => pp.name === name);

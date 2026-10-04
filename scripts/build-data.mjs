@@ -473,8 +473,8 @@ async function main() {
   let iRanked = findHeaderIdx("ranked", "rank", "is ranked");
   let iId = findHeaderIdx("id", "tower id", "towerid", "#");
 
-  if (iId < 0) console.warn('Could not find an "ID" column in the towers sheet header - tower.id will be null for every row, which breaks victors/leaderboard matching.');
-  if (iRanked < 0) console.warn('Could not find a "Ranked" column in the towers sheet header - tower.ranked will be false for every row.');
+  if (iId < 0) console.warn('Could not find an ID column in the towers sheet header. tower.id will be null for every row, which breaks victors/leaderboard matching');
+  if (iRanked < 0) console.warn('Could not find a "Ranked" column in the towers sheet header. tower.ranked will be false for every row');
 
   if (iN < 0) iN = 0;
   if (iD < 0) iD = 1;

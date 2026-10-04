@@ -8,9 +8,12 @@
 <link rel="icon" href="assets/logo.png" type="image/x-icon">
 </head>
 <body>
-<header style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+<header class="site-header">
   <h1>Roblox Obby Index <span style="font-size: 12px;">| The Placement of the obbies may not be accurate</span></h1>
-  <button class="dropdown-btn" id="siteInfoBtn">Info</button>
+  <div class="header-right">
+    <span class="updated-note" id="leaderboardUpdated">Last Time Updated: N/A</span>
+    <button class="dropdown-btn" id="siteInfoBtn">Info</button>
+  </div>
 </header>
 
 <div class="profile-bar" id="profileBar">
@@ -24,6 +27,7 @@
   <button class="tab-btn active" id="tabTowersBtn" data-tab="towers">Obbies</button>
   <button class="tab-btn" id="tabPacksBtn" data-tab="packs">Packs</button>
   <button class="tab-btn" id="tabLeaderboardBtn" data-tab="leaderboard">Leaderboard</button>
+  <button class="tab-btn" id="tabRouletteBtn" data-tab="roulette">Obby Roulette</button>
 </nav>
 
 <div class="filters" id="filters">
@@ -77,7 +81,6 @@
   </div>
 
   <button id="clear">Clear</button>
-  <button id="randomBtn" title="Pick a random obby from the current filters">Random</button>
   <button id="hideHardBtn" class="toggle-btn on" aria-pressed="true">
     <span class="switch"></span><span id="hideHardLabel">Hide Literal+ Obbies</span>
   </button>
@@ -86,7 +89,6 @@
   <select id="sort">
     <option value="difficulty">Difficulty</option>
     <option value="quality">Quality</option>
-    <!--<option value="type">Type</option>-->
   </select>
 
   <button id="dir">▼ High → Low</button>
@@ -135,6 +137,74 @@
   <input type="text" id="leaderboardSearch" placeholder="Search nickname" style="min-width:160px">
 </div>
 
+<div class="filters" id="rouletteFilters" style="display:none">
+  <div class="roulette-diff">
+    <span class="label">Difficulty type</span>
+    <div class="seg" id="rouletteKinds">
+      <button type="button" data-kind="jump">Jump</button>
+      <button type="button" data-kind="obby">Obby</button>
+      <button type="button" data-kind="etoh">EToH</button>
+    </div>
+
+    <div class="range-box" data-kind="jump" style="display:none">
+      <span class="label">From</span>
+      <input type="text" inputmode="decimal" id="rouletteJumpMin">
+      <span class="label">To</span>
+      <input type="text" inputmode="decimal" id="rouletteJumpMax">
+    </div>
+
+    <div class="range-box" data-kind="obby" style="display:none">
+      <span class="label">From tier</span>
+      <select id="rouletteObbyMin"></select>
+      <span class="label">To tier</span>
+      <select id="rouletteObbyMax"></select>
+    </div>
+
+    <div class="range-box" data-kind="etoh" style="display:none">
+      <span class="label">From</span>
+      <input type="text" inputmode="decimal" id="rouletteEtohMin">
+      <span class="label">To</span>
+      <input type="text" inputmode="decimal" id="rouletteEtohMax">
+    </div>
+  </div>
+
+  <div class="dropdown" id="rouletteQualityDropdown">
+    <button class="dropdown-btn" id="rouletteQualityBtn">Quality ▾</button>
+    <div class="dropdown-menu" id="rouletteQualityMenu"></div>
+  </div>
+
+  <div class="dropdown" id="rouletteTagDropdown">
+    <button class="dropdown-btn" id="rouletteTagBtn">Tags ▾</button>
+    <div class="dropdown-menu" id="rouletteTagMenu">
+      <input type="text" id="rouletteTagSearch" placeholder="Search tag" class="dropdown-search">
+      <div id="rouletteTagList"></div>
+    </div>
+  </div>
+
+  <div class="dropdown" id="rouletteLengthDropdown">
+    <button class="dropdown-btn" id="rouletteLengthBtn">Length ▾</button>
+    <div class="dropdown-menu" id="rouletteLengthMenu"></div>
+  </div>
+
+  <div class="dropdown" id="rouletteTypeDropdown">
+    <button class="dropdown-btn" id="rouletteTypeBtn">Type ▾</button>
+    <div class="dropdown-menu" id="rouletteTypeMenu">
+      <input type="text" id="rouletteTypeSearch" placeholder="Search type" class="dropdown-search">
+      <div id="rouletteTypeList"></div>
+    </div>
+  </div>
+
+  <div class="dropdown" id="rouletteAuthorDropdown">
+    <button class="dropdown-btn" id="rouletteAuthorBtn">Authors ▾</button>
+    <div class="dropdown-menu" id="rouletteAuthorMenu">
+      <input type="text" id="rouletteAuthorSearch" placeholder="Search author" class="dropdown-search">
+      <div id="rouletteAuthorList"></div>
+    </div>
+  </div>
+
+  <button id="rouletteClear">Clear</button>
+</div>
+
 <main id="towersMain">
   <section class="card">
     <h2>Obbies List <span class="count" id="listCount"></span></h2>
@@ -171,6 +241,22 @@
   </section>
 </main>
 
+<main id="rouletteMain" style="display:none">
+  <section class="card">
+    <h2>Obby Roulette</h2>
+    <div class="roulette-body">
+      <div class="roulette-count" id="rouletteCount">Found 0 obbies matching your criteria</div>
+      <div class="roulette-display" id="rouletteDisplay">?</div>
+      <button id="rouletteSpinBtn" class="roulette-btn">Random Obby</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Obby Info</h2>
+    <div class="info" id="rouletteInfo"><div class="muted">Press "Random Obby" to pick an obby</div></div>
+  </section>
+</main>
+
 <div class="modal-overlay" id="siteInfoModalOverlay">
   <div class="modal">
     <div class="modal-head">
@@ -183,11 +269,13 @@
 
 <script src="scripts/difficulty.js"></script>
 <script src="scripts/ui.js"></script>
+<script src="scripts/roles.js"></script>
 <script src="scripts/data.js"></script>
 <script src="scripts/render.js"></script>
 <script src="scripts/packs.js"></script>
 <script src="scripts/leaderboard.js"></script>
 <script src="scripts/profile.js"></script>
+<script src="scripts/roulette.js"></script>
 <script src="scripts/tabs.js"></script>
 </body>
 </html>

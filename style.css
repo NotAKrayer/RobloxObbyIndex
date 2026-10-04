@@ -21,6 +21,8 @@ body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 Arial,sans-se
 *::-webkit-scrollbar-thumb:hover{background:var(--muted)}
 *::-webkit-scrollbar-corner{background:var(--bg2)}
 header{padding:10px 14px;background:var(--bg2);border-bottom:1px solid var(--border)}
+.site-header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.header-right{display:flex;align-items:center;gap:12px;margin-left:auto}
 header h1{margin:0;font-size:16px}
 
 .tabs{display:flex;gap:4px;padding:8px 14px 0 14px;background:var(--bg2);border-bottom:1px solid var(--border)}
@@ -170,11 +172,9 @@ main{display:grid;grid-template-columns:1fr 380px;gap:10px;padding:10px}
   border-radius: 6px;
   text-decoration: none;
 }
-/* compact scrollable list inside player profile */
 .scroll-box{max-height:260px;overflow-y:auto;padding-right:4px;border-radius:4px}
 .scroll-box .pack-tower-row{flex:none;padding:4px 8px;font-size:13px}
 
-/* on/off switch button */
 .toggle-btn{display:inline-flex;align-items:center;gap:8px}
 .toggle-btn .switch{
   position:relative;width:28px;height:16px;flex:none;border-radius:8px;
@@ -186,3 +186,33 @@ main{display:grid;grid-template-columns:1fr 380px;gap:10px;padding:10px}
 }
 .toggle-btn.on .switch{background:var(--accent)}
 .toggle-btn.on .switch::after{transform:translateX(12px)}
+
+.role-owner{color:#ff4a1c}
+.role-manager{color:#35b0ff}
+.role-tag{
+  display:inline-block;margin-left:6px;font-size:10px;line-height:14px;font-weight:normal;vertical-align:1px;
+}
+input[type=text].invalid{border-color:#e04b4b}
+.updated-note{display:flex;align-items:center;color:var(--muted);font-size:12px;white-space:nowrap}
+
+.roulette-diff{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.roulette-diff .label{color:var(--muted);display:flex;align-items:center}
+.seg{display:inline-flex}
+.seg button{border-radius:0;margin-left:-1px;display:inline-flex;align-items:center}
+.seg button:first-child{border-radius:4px 0 0 4px;margin-left:0}
+.seg button:last-child{border-radius:0 4px 4px 0}
+.seg button.shown{background:var(--accent);border-color:var(--accent);color:#fff}
+.seg button.applied::after{content:"";display:inline-block;width:6px;height:6px;margin-left:6px;border-radius:50%;background:#ffb020}
+.range-box{display:flex;align-items:center;gap:6px}
+.range-box input[type=text]{width:84px}
+
+.roulette-body{padding:18px 14px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
+.roulette-count{color:var(--muted)}
+.roulette-display{
+  width:100%;min-height:72px;display:flex;align-items:center;justify-content:center;
+  padding:10px;font-size:20px;font-weight:bold;overflow-wrap:anywhere;
+  background:var(--bg2);border:1px solid var(--border);border-radius:6px;
+}
+.roulette-btn{height:40px;padding:0 28px;font-size:15px;background:#3a3b40;border-color:#2b2c31;color:#fff}
+.roulette-btn:hover{background:#2b2c31}
+.roulette-btn:disabled{opacity:.5;cursor:not-allowed;background:#3a3b40}

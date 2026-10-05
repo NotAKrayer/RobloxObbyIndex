@@ -354,8 +354,8 @@ function realEffectiveDifficultyValue(t) {
 }
 
 const XP_ANCHORS = [
-  [0, 1],
-  [7.99, 99],
+  [0, 0.05],
+  [7.99, 20],
   [8, 100],
   [9, 250],
   [10, 500],

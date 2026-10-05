@@ -10,8 +10,8 @@ const GAMES_SHEET_NAME = "games";
 const GVIZ_URL_BY_NAME = (name) => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(name)}`;
 
 const XP_ANCHORS = [
-  [0, 1],
-  [7.99, 99],
+  [0, 0.05],
+  [7.99, 20],
   [8, 100],
   [9, 250],
   [10, 500],

@@ -11,7 +11,7 @@ const GVIZ_URL_BY_NAME = (name) => `https://docs.google.com/spreadsheets/d/${SHE
 
 const XP_ANCHORS = [
   [0, 0.05],
-  [7.99, 20],
+  [7.99, 10],
   [8, 100],
   [9, 250],
   [10, 500],

@@ -354,6 +354,8 @@ function realEffectiveDifficultyValue(t) {
 }
 
 const XP_ANCHORS = [
+  [0, 1],
+  [7.99, 99],
   [8, 100],
   [9, 250],
   [10, 500],
@@ -370,10 +372,7 @@ const XP_TAIL_GROWTH_RATE = 1.35;
 function xpForDifficulty(effectiveDiff) {
   if (effectiveDiff == null || isNaN(effectiveDiff)) return 0;
 
-  if (effectiveDiff <= XP_ANCHORS[0][0]) {
-    const raw = XP_ANCHORS[0][1] * Math.pow(1.15, effectiveDiff - XP_ANCHORS[0][0]);
-    return Math.max(0, Math.round(raw * 100) / 100);
-  }
+  if (effectiveDiff <= XP_ANCHORS[0][0]) return XP_ANCHORS[0][1];
 
   if (effectiveDiff >= XP_LAST_ANCHOR[0]) {
     const raw = XP_LAST_ANCHOR[1] * Math.pow(XP_TAIL_GROWTH_RATE, effectiveDiff - XP_LAST_ANCHOR[0]);

@@ -124,10 +124,17 @@ function rouletteRangeMatch(kind, t) {
   return true;
 }
 
+function rouletteKindOf(t) {
+  const nt = normType(t.tier);
+  if (nt === "jump") return "jump";
+  if (TIER_TYPES.includes(nt)) return "obby";
+  return "etoh";
+}
+
 function rouletteDifficultyPass(t) {
-  const active = ROULETTE_KINDS.filter(rouletteRangeActive);
-  if (!active.length) return true;
-  return active.some(kind => rouletteRangeMatch(kind, t));
+  const kind = rouletteKindOf(t);
+  if (!rouletteRangeActive(kind)) return true;
+  return rouletteRangeMatch(kind, t);
 }
 
 function rouletteQualityKey(t) {

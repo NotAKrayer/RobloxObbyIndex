@@ -367,7 +367,7 @@ document.getElementById("siteInfoBtn").onclick = () => {
       <div class="site-info-credits">
         <div><span>Inspiration</span><b>SCLP</b></div>
         <div><span>Owner &amp; developer</span><b class="role-owner">KirillLegenda (KirillMatter)</b></div>
-        <div><span>List Manager</span><b class="role-manager">ddlghl, Fizss45</b></div>
+        <div><span>List Manager</span><b class="role-manager">ddlghl, Fizss45, cynic_l, Normal_Fanftc</b></div>
       </div>
       <div class="site-info-actions">
         <button onclick="window.open('https://discord.gg/D8PVcPR4Uj', '_blank')" class="discord-btn">Our Discord</button>

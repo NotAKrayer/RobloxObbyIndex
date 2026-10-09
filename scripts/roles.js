@@ -1,5 +1,5 @@
 const OWNER_NICKS = ["KirillLegenda", "KirillMatter", "RussiaTop4kovich"];
-const MANAGER_NICKS = ["ddlghl", "Fizss45", "ddlghlmaybe", "Fizss38"];
+const MANAGER_NICKS = ["ddlghl", "Fizss45", "ddlghlmaybe", "Fizss38", "cynic_l", "Normal_Fanftc"];
 
 function roleOfNick(nick) {
   const key = String(nick || "").trim().toLowerCase();

@@ -34,14 +34,22 @@ function resolveTowerLinks(t){
 
 async function loadTowers() {
   try {
-    const res = await fetch(DATA_URL, { cache: "no-store" });
+    const freshUrl = DATA_URL + "?_=" + Date.now();
+    const res = await fetch(freshUrl, {
+      cache: "no-store",
+      headers: { "Cache-Control": "no-cache", "Pragma": "no-cache" }
+    });
     if (!res.ok) throw new Error(res.status);
     const data = await res.json();
 
-    setGamesMap(data.games);
-    state.towers = data.towers;
-    state.allTags = data.allTags;
-    state.allTypes = data.allTypes;
+    setGamesMap(data.games || {});
+    state.towers = Array.isArray(data.towers) ? data.towers : [];
+    state.allTags = Array.isArray(data.allTags) ? data.allTags : [];
+    state.allTypes = Array.isArray(data.allTypes) ? data.allTypes : [];
+    if (typeof globalRankByTower !== "undefined") {
+      globalRankByTower = new Map();
+      globalRankSortKey = null;
+    }
     buildTagMenu();
     buildTypeMenu();
     buildAuthorMenu();

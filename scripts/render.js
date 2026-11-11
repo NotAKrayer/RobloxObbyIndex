@@ -262,9 +262,12 @@ function renderList() {
       : `(${bySortWithinFilters.length})`;
   }
 
-  listEl.innerHTML = "";
-  if (!arr.length) { listEl.innerHTML = '<div class="muted">There is no obby based on the selected filters</div>'; return; }
+  if (!arr.length) {
+    listEl.innerHTML = '<div class="muted">There is no obby based on the selected filters</div>';
+    return;
+  }
 
+  const fragment = document.createDocumentFragment();
   arr.forEach((t) => {
     const fd = formatDifficulty(t);
     const rankedIcon = t.ranked ? '<img src="assets/star-64.png" class="ranked-star" alt="Ranked" title="Ranked">' : "";
@@ -274,9 +277,19 @@ function renderList() {
     const row = document.createElement("div");
     row.className = "row" + (state.selected === t ? " sel" : "");
     row.innerHTML = `<span class="n">#${globalRankByTower.get(t)}</span><span class="name">${esc(t.name)}${rankedIcon}</span>${doneMark}<span class="d" style="color:${fd.color}">${esc(fd.text)}</span>`;
-    row.onclick = () => { state.selected = t; renderList(); renderInfo(t); };
-    listEl.appendChild(row);
+    row.onclick = () => {
+      if (state.selected === t) return;
+      
+      const previous = listEl.querySelector(".row.sel");
+      if (previous) previous.classList.remove("sel");
+      row.classList.add("sel");
+
+      state.selected = t;
+      renderInfo(t);
+    };
+    fragment.appendChild(row);
   });
+  listEl.replaceChildren(fragment);
 }
 
 function renderInfo(t, target) {

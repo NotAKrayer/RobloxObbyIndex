@@ -248,9 +248,12 @@ function renderPackList(){
       : `(${bySortWithinFilters.length})`;
   }
 
-  packListEl.innerHTML = "";
-  if (!arr.length) { packListEl.innerHTML = '<div class="muted">There is no pack based on the selected filters</div>'; return; }
+  if (!arr.length) {
+    packListEl.innerHTML = '<div class="muted">There is no pack based on the selected filters</div>';
+    return;
+  }
 
+  const fragment = document.createDocumentFragment();
   arr.forEach((p) => {
     const fd = formatPackDifficulty(p);
     const done = typeof isPackCompletedByProfile === "function" && isPackCompletedByProfile(p);
@@ -260,9 +263,17 @@ function renderPackList(){
     const row = document.createElement("div");
     row.className = "row" + (packState.selected === p ? " sel" : "");
     row.innerHTML = `<span class="n">#${globalPackRankByPack.get(p)}</span><span class="name">${esc(p.name)}</span>${doneMark}${progressHtml}<span class="d" style="color:${fd.color}">${esc(fd.text)}</span>`;
-    row.onclick = () => { packState.selected = p; renderPackList(); renderPackInfo(p); };
-    packListEl.appendChild(row);
+    row.onclick = () => {
+      if (packState.selected === p) return;
+      const previous = packListEl.querySelector(".row.sel");
+      if (previous) previous.classList.remove("sel");
+      row.classList.add("sel");
+      packState.selected = p;
+      renderPackInfo(p);
+    };
+    fragment.appendChild(row);
   });
+  packListEl.replaceChildren(fragment);
 }
 
 function renderPackInfo(pack){
@@ -340,13 +351,28 @@ function renderPackInfo(pack){
   });
 }
 
+let packsByTowerName = new Map();
+
+function rebuildPacksByTowerIndex(){
+  packsByTowerName = new Map();
+  packState.packs.forEach(pack => {
+    (pack.towers || []).forEach(name => {
+      const key = String(name).toLowerCase();
+      if (!packsByTowerName.has(key)) packsByTowerName.set(key, []);
+      packsByTowerName.get(key).push(pack);
+    });
+  });
+}
+
 function packsForTower(t){
   if (!t) return [];
-  return packState.packs.filter(p => p.towers.some(n => n.toLowerCase() === t.name.toLowerCase()));
+  return packsByTowerName.get(String(t.name).toLowerCase()) || [];
 }
 
 function loadPacksFromData(rawPacks){
   packState.packs = rawPacks || [];
+  rebuildPacksByTowerIndex();
+  globalPackRankSortKey = null;
   packState.towerByName = new Map();
   state.towers.forEach(t => {
     packState.towerByName.set(t.name.toLowerCase(), t);
